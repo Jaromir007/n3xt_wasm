@@ -1,0 +1,56 @@
+# C++
+*.o
+*.obj
+*.so
+*.exe
+*.out
+*.a
+*.dylib
+*.lib
+*.dll
+*.pdb
+*.idb
+*.class
+*.psd
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg
+*.egg-info
+dist/
+build/
+*.manifest
+*.spec
+
+# Web
+node_modules/
+bower_components/
+*.log
+*.lock
+*.tmp
+*.swp
+*.swo
+*.bak
+*.orig
+*.rej
+*.sublime-project
+*.sublime-workspace
+*.idea/
+*.vscode/
+.DS_Store
+Thumbs.db
+
+# Slicer
+*.gcode
+
+# venv
+venv/
+.venv/
