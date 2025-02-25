@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="assets/images/icons/n3xt-favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/css/style.css">
+    <title>N3XT Slicer</title>
+</head>
+
+<body>
+    <div class="page__inner">
+        <header class="header">
+            <div class="header__content-wrapper">
+                <div class="header__inner">
+                    <a class="header__logo" href="index.html">N<span>3</span>XT</a>
+                    <nav class="header__nav" id="headerNav">
+                        <ul class="header__menu">
+                            <li class="header__menu-title">Menu</li>
+                            <li class="header__menu-item"><a href="#">About</a></li>
+                            <li class="header__menu-item"><a href="#">Features</a></li>
+                            <li class="header__menu-item"><a href="#">Blog</a></li>
+                            <li class="header__menu-item"><a href="#">Support</a></li>
+                            <li class="header__menu-item"><a href="#">Login</a></li>
+                        </ul>
+                        <a href="slicer.html" class="thm-btn header__cta--mobile">
+                            Open Slicer
+                        </a>
+                    </nav>
+                    <div class="header__right">
+                        <i class="fas fa-search header__search-button-icon" id="searchIcon"></i>
+                        <a href="slicer.html" class="thm-btn header__cta">
+                            Open Slicer
+                        </a>
+                        <button class="header__hamburger-button" id="hamburgerButton">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="header__search-bar" id="searchBar">
+                <div class="header__search-bar-inner">
+                    <input type="text" placeholder="Search..." id="searchInput">
+                </div>
+            </div>
+        </header>
+
+
+        <main class="main">
+            <div class="hero">
+                <div class="hero__inner container">
+                    <div class="hero__left">
+                        <div class="hero__text">
+                            <h1 class="hero__title">The Future of 3D&nbsp;Slicing</h1>
+                            <p class="hero__description">N3XT is a web-based slicer that allows you to slice your 3D
+                                models
+                                right from your browser. No
+                                need to download or install anything. Just upload your model and start slicing!
+                            </p>
+                        </div>
+                        <div class="hero__stars">
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <p><strong>Slicing has never been so easy!</strong></p>
+
+                        <div class="hero__button-box">
+                            <a href="slicer.html" class="thm-btn btn--large btn--secondary">Open Slicer
+                            </a>
+                            <a href="#" class="thm-btn btn--large">Learn more
+                            </a>
+                        </div>
+
+                    </div>
+                    <div class="hero__right">
+                        <img src="assets/images/hero-image.png" alt="" class="hero__img">
+                    </div>
+                </div>
+            </div>
+            <section class="section features">
+                <div class="features__inner container">
+                    <div class="section__header section__header--center">
+                        <span class="section__tag">Features</span>
+                        <h2 class="section__title">Slice directly from your browser</h2>
+                        <p class="section__text">
+                            Downloading slicer app takes time - especially if you often switch between operation systems
+                            and
+                            devices.
+                            That's why we created N3XT - a great solution for everyone.
+                        </p>
+                    </div>
+                    <div class="features__grid">
+                        <div class="features__single">
+                            <i class="fa-solid fa-right-to-bracket"></i>
+                            <h3>No login required</h3>
+                            <p>Yes, that's right - you don't have to login to use our slicer. Login is required only if
+                                you want
+                                to use features like saving your models or slicing preferences.
+                            </p>
+                        </div>
+                        <div class="features__single">
+                            <i class="fa-solid fa-check"></i>
+                            <h3>Easy to use</h3>
+                            <p>All you need is stable internet connection. If you still get lost, just head over to our
+                                tutorial
+                                and
+                                read the basics.</p>
+                        </div>
+                        <div class="features__single">
+                            <i class="fa-regular fa-credit-card"></i>
+                            <h3>Free and open source</h3>
+                            <p>Our goal is to democratize 3D slicing. We developed a new slicer from scratch, focusing
+                                on
+                                simplicity and ease of use, making it accessible for everyone.
+                            </p>
+                        </div>
+                    </div>
+            </section>
+
+        </main>
+    </div>
+
+    <footer class="footer">
+        <span>N3XT &copy;
+            <script>document.write(new Date().getFullYear());</script> All rights reserved.
+        </span>
+    </footer>
+</body>
+
+<script src="assets/js/header.js"></script>
+
+</html>

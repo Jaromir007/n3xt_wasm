@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="assets/images/icons/n3xt-favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/slicer.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+                "three/examples/jsm/loaders/STLLoader": "https://unpkg.com/three@0.150.1/examples/jsm/loaders/STLLoader.js",
+                "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.150.1/examples/jsm/controls/OrbitControls.js"
+            }
+        }
+    </script>
+    <title>N3XT App</title>
+</head>
+
+<body>
+    <div class="app__inner">
+        <header class="slicer__header">
+            <div class="slicer__header-inner">
+                <a href="/" class="slicer__back">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Back
+                </a>
+                </nav>
+                <label for="fileInput" class="app-btn">STL</label>
+                <input type="file" id="fileInput" accept=".stl">
+
+                <label for="jsonInput" class="app-btn">JSON</label>
+                <input type="file" id="jsonInput" accept=".json">
+
+                <button id="clearButton" class="app-btn app-btn--danger">Clear</button>
+            </div>
+        </header>
+        <canvas class="slicer__canvas" id="slicerCanvas"></canvas>
+    </div>
+</body>
+
+<script type="module" src="assets/js/slicer.js"></script>
+
+</html>
