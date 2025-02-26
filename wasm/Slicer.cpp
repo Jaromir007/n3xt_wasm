@@ -9,6 +9,10 @@ using namespace std;
 
 extern "C" {
 
+struct P2 {
+    float x, y;
+};
+    
 struct Vec3 {
     float x, y, z;
 };
@@ -18,7 +22,7 @@ struct Triangle {
 };
 
 vector<Triangle> triangleBuffer;
-vector<Vec3> sliceResultBuffer;
+vector<P2> sliceResultBuffer;
 
 EMSCRIPTEN_KEEPALIVE
 int parseSTL(const uint8_t* data, int length) {
@@ -45,13 +49,10 @@ int parseSTL(const uint8_t* data, int length) {
 }
 
 EMSCRIPTEN_KEEPALIVE
-Vec3* slice(float layerHeight, int* numPoints) {
+P2* slice(float layerHeight, int* totalPoints) {
     sliceResultBuffer.clear();
-    
-    if (triangleBuffer.empty()) {
-        *numPoints = 0;
-        return nullptr;
-    }
+
+    if (triangleBuffer.empty()) return nullptr;
 
     float minZ = triangleBuffer[0].v1.z, maxZ = triangleBuffer[0].v1.z;
     for (const auto& tri : triangleBuffer) {
@@ -60,24 +61,36 @@ Vec3* slice(float layerHeight, int* numPoints) {
     }
 
     for (float zp = minZ; zp <= maxZ; zp += layerHeight) {
+        vector<P2> layerPoints;
+
         for (const auto& tri : triangleBuffer) {
             Vec3 edges[3][2] = {{tri.v1, tri.v2}, {tri.v2, tri.v3}, {tri.v3, tri.v1}};
             for (auto& edge : edges) {
                 Vec3 p1 = edge[0], p2 = edge[1];
                 if ((p1.z < zp && p2.z > zp) || (p1.z > zp && p2.z < zp)) {
                     float t = (zp - p1.z) / (p2.z - p1.z);
-                    sliceResultBuffer.push_back({
+                    layerPoints.push_back({
                         p1.x + t * (p2.x - p1.x),
                         p1.y + t * (p2.y - p1.y),
-                        zp
                     });
                 }
             }
         }
+
+        if (!layerPoints.empty()) {
+            sliceResultBuffer.insert(sliceResultBuffer.end(), layerPoints.begin(), layerPoints.end());
+            sliceResultBuffer.push_back({-9999, -9999}); // Layer separator
+        }
     }
 
-    *numPoints = sliceResultBuffer.size();
+    *totalPoints = sliceResultBuffer.size();
     return sliceResultBuffer.data();
+}
+
+
+EMSCRIPTEN_KEEPALIVE
+int getSize() {
+    return sliceResultBuffer.size();
 }
 
 }

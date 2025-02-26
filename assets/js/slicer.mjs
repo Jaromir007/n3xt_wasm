@@ -1320,6 +1320,7 @@ var wasmExports = await createWasm();
 var ___wasm_call_ctors = createExportWrapper('__wasm_call_ctors', 0);
 var _parseSTL = Module['_parseSTL'] = createExportWrapper('parseSTL', 2);
 var _slice = Module['_slice'] = createExportWrapper('slice', 2);
+var _getSize = Module['_getSize'] = createExportWrapper('getSize', 0);
 var _fflush = createExportWrapper('fflush', 1);
 var _strerror = createExportWrapper('strerror', 1);
 var _malloc = Module['_malloc'] = createExportWrapper('malloc', 1);

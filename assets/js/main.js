@@ -1,6 +1,7 @@
-import * as THREE from 'three';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import * as THREE from "three";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import slicerModule from "./slicer.mjs";
 
 class Config {
     // Print bed
@@ -184,7 +185,7 @@ class Model extends THREE.Mesh {
                 start.position.x, start.position.y, start.position.z,
                 end.position.x, end.position.y, end.position.z
             ]);
-            edgeGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            edgeGeometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
             const edge = new THREE.Line(edgeGeometry, edgeMaterial);
             scene.add(edge);
             return edge;
@@ -231,10 +232,6 @@ class Model extends THREE.Mesh {
 // -------------------------------------------------------------
 
 
-let scene, camera, renderer, controls, printBed, light;
-let imported = [];
-
-init();
 
 function init() {
     scene = new THREE.Scene();
@@ -268,51 +265,50 @@ function init() {
     printBed.render();
     light.render();
 
-    document.getElementById('fileInput').addEventListener('change', loadSTL);
-    document.getElementById('jsonInput').addEventListener('change', loadJson);
-    document.getElementById('clearButton').addEventListener('click', clearScene);
+    document.getElementById("loadSTLButton").addEventListener("change", loadSTL);
+    document.getElementById("clearButton").addEventListener("click", clearAll);
 
-    renderer.domElement.addEventListener('click', selectObject, false);
-    window.addEventListener('resize', onWindowResize);
-    window.addEventListener('keydown', cameraPosition);
+    renderer.domElement.addEventListener("click", selectObject, false);
+    window.addEventListener("resize", onWindowResize);
+    window.addEventListener("keydown", cameraPosition);
 
     animate();
 }
 
 function cameraPosition(event) {
     switch (event.key.toLowerCase()) {
-        case 'b': // Reset 
+        case "b": // Reset 
             controls.reset();
             camera.position.set(0, 100, 200);
             break;
-        case 'z': // Zoom out 
+        case "z": // Zoom out 
             zoomToScene();
             break;
-        case '0': // Isometric view
+        case "0": // Isometric view
             camera.position.set(150, 150, 150);
             break;
-        case '1': // Top-down view
+        case "1": // Top-down view
             camera.position.set(0, 200, 0);
             break;
-        case '2': // Bottom-up view
+        case "2": // Bottom-up view
             camera.position.set(0, 0, 250);
             break;
-        case '3': // Front view
+        case "3": // Front view
             camera.position.set(0, 100, 200);
             break;
-        case '4': // Back view
+        case "4": // Back view
             camera.position.set(0, 100, -200);
             break;
-        case '5': // Left view
+        case "5": // Left view
             camera.position.set(-200, 100, 0);
             break;
-        case '6': // Right view
+        case "6": // Right view
             camera.position.set(200, 100, 0);
             break;
-        case 'i': // Zoom in
+        case "i": // Zoom in
             camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()), -10);
             break;
-        case 'o': // Zoom out
+        case "o": // Zoom out
             camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()), 10);
             break;
     }
@@ -369,36 +365,45 @@ function loadSTL(event) {
 
         scene.add(model);
         imported.push(model);
-
-        console.log('STL file imported:', model);
     };
     reader.readAsArrayBuffer(file);
 }
 
-function loadJson(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+function centerLayers(layers) {
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const layers = JSON.parse(e.target.result);
-        drawPoints(layers);
-    };
-    reader.readAsText(file);
+    layers.forEach(layer => {
+        layer.forEach(p => {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.y > maxY) maxY = p.y;
+        });
+    });
+
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    return layers.map(layer =>
+        layer.map(p => ({ x: p.x - centerX, y: p.y - centerY }))
+    );
 }
 
+
 function drawLayers(layers) {
+    layers = centerLayers(layers)
     const vertices = [];
 
     layers.forEach((layer, i) => {
         const zHeight = i * 0.2;
         layer.forEach(p => {
-            vertices.push(p[0], zHeight, p[1]);
+            vertices.push(p.x, zHeight, p.y);
         });
     });
 
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
 
     const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
     const lines = new THREE.LineSegments(geometry, material);
@@ -408,6 +413,7 @@ function drawLayers(layers) {
 }
 
 function drawPoints(layers) {
+    layers = centerLayers(layers)
     layers.forEach((layer, i) => {
         const zHeight = i * 0.2;
         const points = new THREE.BufferGeometry();
@@ -415,10 +421,10 @@ function drawPoints(layers) {
         const color = 0xff0000;
 
         layer.forEach(p => {
-            vertices.push(p[0], zHeight, p[1]);
+            vertices.push(p.x, zHeight, p.y);
         });
 
-        points.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        points.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
 
         const material = new THREE.PointsMaterial({ color, size: 2, sizeAttenuation: false });
         const pointsMesh = new THREE.Points(points, material);
@@ -444,19 +450,112 @@ function selectObject(event) {
     if (intersects.length > 0) {
         const selectedObject = intersects[0].object;
         selectedObject.clicked();
-        console.log('Selected object:', selectedObject);
     }
 }
 
 
 function clearScene() {
-    imported.forEach(model => model.dispose());
+    imported.forEach(model => {
+        if (model.geometry) model.geometry.dispose();
+        if (model.material) model.material.dispose();
+        scene.remove(model);
+    });
+
     imported = [];
 
-    console.log('Scene cleared');
-
-    document.getElementById('fileInput').value = "";
-    document.getElementById('jsonInput').value = "";
+    document.getElementById("loadSTLButton").value = "";
 
     renderer.render(scene, camera);
 }
+
+function clearAll() {
+    clearScene();
+    layers = []
+}
+
+
+// -----------------------------------------------------------------------------
+
+
+let scene, camera, renderer, controls, printBed, light;
+let imported = [];
+let layers = [];
+
+init();
+
+
+let slicer;
+slicerModule().then((module) => {
+    slicer = module;
+    console.log("WASM loaded");
+}).catch((err) => {
+    console.error("Failed to load WASM:", err);
+});
+
+let stlDataPointer = null;
+let stlSize = 0;
+
+document.getElementById("loadSTLButton").addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    if (!file || !slicer) return;
+
+    const arrayBuffer = await file.arrayBuffer();
+    const byteArray = new Uint8Array(arrayBuffer);
+    stlSize = byteArray.length;
+
+    if (stlDataPointer) {
+        slicer._free(stlDataPointer);
+    }
+
+    stlDataPointer = slicer._malloc(stlSize);
+    slicer.HEAPU8.set(byteArray, stlDataPointer);
+
+    slicer._parseSTL(stlDataPointer, stlSize);
+});
+
+document.getElementById("sliceButton").addEventListener("click", () => {
+    if (!slicer || !stlDataPointer) {
+        return;
+    }
+
+    const layerHeight = 0.2;
+    const totalPointsPointer = slicer._malloc(4);
+
+    const pointsPointer = slicer._slice(layerHeight, totalPointsPointer);
+    const totalPoints = slicer.HEAP32[totalPointsPointer / 4];
+
+    let currentLayer = [];
+
+    for (let i = 0; i < totalPoints; i++) {
+        const index = (pointsPointer / 4) + i * 2;
+        const x = slicer.HEAPF32[index];
+        const y = slicer.HEAPF32[index + 1];
+
+        if (x === -9999 && y === -9999) {
+            layers.push(currentLayer);
+            currentLayer = [];
+        } else {
+            currentLayer.push({ x, y });
+        }
+    }
+
+    clearScene()
+    drawLayers(layers)
+
+    slicer._free(totalPointsPointer);
+});
+
+document.getElementById("drawLayersButton").addEventListener("click", () => {
+    clearScene()
+    if (layers) {
+        drawLayers(layers)
+    }
+});
+
+document.getElementById("drawPointsButton").addEventListener("click", () => {
+    clearScene()
+    if (layers) {
+        drawPoints(layers)
+    }
+});
+

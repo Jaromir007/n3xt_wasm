@@ -33,11 +33,13 @@
                     Back
                 </a>
                 </nav>
-                <label for="fileInput" class="app-btn">STL</label>
-                <input type="file" id="fileInput" accept=".stl">
+                <label for="loadSTLButton" class="app-btn">Load STL</label>
+                <input type="file" id="loadSTLButton" accept=".stl">
 
-                <label for="jsonInput" class="app-btn">JSON</label>
-                <input type="file" id="jsonInput" accept=".json">
+                <button class="app-btn" id="sliceButton">Slice</button>
+                <button class="app-btn" id="drawLayersButton">Draw Layers</button>
+                <button class="app-btn" id="drawPointsButton">Draw Points</button>
+
 
                 <button id="clearButton" class="app-btn app-btn--danger">Clear</button>
             </div>
@@ -46,6 +48,6 @@
     </div>
 </body>
 
-<script type="module" src="assets/js/slicer.js"></script>
+<script type="module" src="assets/js/main.js"></script>
 
 </html>
