@@ -23,6 +23,7 @@ vector<vector<Vec3>> slice(const vector<Triangle>& triangles, float layerHeight)
                     layer.push_back({
                         p1.x + t * (p2.x - p1.x),
                         p1.y + t * (p2.y - p1.y),
+                        zp
                     });
                 }
             }
