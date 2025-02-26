@@ -1,17 +1,19 @@
 #include "Slicer.hpp"
 #include <algorithm>
 
-std::vector<std::vector<Vec3>> slice(const std::vector<Triangle>& triangles, float layerHeight) {
-    std::vector<std::vector<Vec3>> layers;
+using namespace std; 
+
+vector<vector<Vec3>> slice(const vector<Triangle>& triangles, float layerHeight) {
+    vector<vector<Vec3>> layers;
     float minZ = triangles[0].v1.z, maxZ = triangles[0].v1.z;
 
     for (const auto& tri : triangles) {
-        minZ = std::min({minZ, tri.v1.z, tri.v2.z, tri.v3.z});
-        maxZ = std::max({maxZ, tri.v1.z, tri.v2.z, tri.v3.z});
+        minZ = min({minZ, tri.v1.z, tri.v2.z, tri.v3.z});
+        maxZ = max({maxZ, tri.v1.z, tri.v2.z, tri.v3.z});
     }
 
     for (float zi = minZ; zi <= maxZ; zi += layerHeight) {
-        std::vector<Vec3> layer;
+        vector<Vec3> layer;
         for (const auto& tri : triangles) {
             Vec3 edges[3][2] = {{tri.v1, tri.v2}, {tri.v2, tri.v3}, {tri.v3, tri.v1}};
             for (auto& edge : edges) {

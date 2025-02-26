@@ -3,12 +3,14 @@
 #include <iostream>
 #include <cstdint>
 
-std::vector<Triangle> parseSTL(const std::string& filename) {
-    std::ifstream file(filename, std::ios::binary);
-    std::vector<Triangle> triangles;
+using namespace std; 
+
+vector<Triangle> parseSTL(const string& filename) {
+    ifstream file(filename, ios::binary);
+    vector<Triangle> triangles;
 
     if (!file) {
-        std::cerr << "Failed to open STL. \n";
+        cerr << "Failed to open STL. \n";
         return triangles;
     }
 

@@ -2,13 +2,15 @@
 #include "Slicer.hpp"
 #include <iostream>
 
+using namespace std; 
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cerr << "No file path provided" << std::endl;
+        cerr << "No file path provided" << endl;
         return 1;
     }
 
-    std::string filename = argv[1];
+    string filename = argv[1];
     float layerHeight = 0.2f;
 
     auto triangles = parseSTL(filename);
@@ -17,9 +19,9 @@ int main(int argc, char* argv[]) {
     auto layers = slice(triangles, layerHeight);
     
     for (size_t i = 0; i < layers.size(); ++i) {
-        std::cout << "Layer " << i << " (Z = " << (i * layerHeight) << ")\n";
+        cout << "Layer " << i << " (Z = " << (i * layerHeight) << ")\n";
         for (const auto& p : layers[i]) {
-            std::cout << "(" << p.x << ", " << p.y << ", " << p.z << ")\n";
+            cout << "(" << p.x << ", " << p.y << ", " << p.z << ")\n";
         }
     }
     

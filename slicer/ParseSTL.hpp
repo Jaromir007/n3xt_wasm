@@ -5,6 +5,8 @@
 #include <string>
 #include "Triangle.hpp"
 
-std::vector<Triangle> parseSTL(const std::string& filename);
+using namespace std; 
+
+vector<Triangle> parseSTL(const string& filename);
 
 #endif
