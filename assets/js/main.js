@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import slicerModule from "./slicer.mjs";
+import slicerModule from "./slicer.js";
 
 class Config {
     // Print bed
