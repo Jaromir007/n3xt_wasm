@@ -1,4 +1,4 @@
-emcc Slicer.cpp -o slicer.mjs \
+emcc Slicer.cpp -o slicer.js \
     -s MODULARIZE=1 \
     -s EXPORT_ES6=1 \
     -s ENVIRONMENT=web \
