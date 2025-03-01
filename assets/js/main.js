@@ -546,15 +546,15 @@ document.getElementById("sliceButton").addEventListener("click", () => {
 });
 
 document.getElementById("drawLayersButton").addEventListener("click", () => {
-    clearScene()
-    if (layers) {
+    if (layers.length > 0) {
+        clearScene()
         drawLayers(layers)
     }
 });
 
 document.getElementById("drawPointsButton").addEventListener("click", () => {
-    clearScene()
-    if (layers) {
+    if (layers.length > 0) {
+        clearScene()
         drawPoints(layers)
     }
 });
