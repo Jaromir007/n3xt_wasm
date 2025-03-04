@@ -470,7 +470,7 @@ function clearAll() {
     clearScene();
     sliced = false;
     imported = [];
-    layers = []
+    layers = [];
 
     document.getElementById("loadSTLButton").value = "";
 }
@@ -526,10 +526,10 @@ renderer.domElement.addEventListener("dragover", (event) => {
 
 renderer.domElement.addEventListener("drop", async (event) => {
     event.preventDefault();
+    clearAll();
     displaySTL(event);
     await loadSTL(event);
 });
-
 
 loadSTLButton.addEventListener("click", () => {
     clearAll();
