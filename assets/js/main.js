@@ -129,6 +129,8 @@ class Model extends THREE.Mesh {
         super(geometry, material);
         this.name = name;
         this.selected = false;
+        this.boundingBox = null;
+        this.hasBoundingBox = false;
 
         this.color = Config.MODEL_COLOR;
         this.colorSelected = Config.MODEL_COLOR_SELECTED;
@@ -146,7 +148,7 @@ class Model extends THREE.Mesh {
     createBoundingBox() {
         const box = new THREE.Box3().setFromObject(this);
         const cornerGeometry = new THREE.SphereGeometry(0.5, 8, 8);
-        const cornerMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const cornerMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });    
 
         this.corners = [
             new THREE.Vector3(box.min.x, box.min.y, box.min.z),
@@ -190,6 +192,8 @@ class Model extends THREE.Mesh {
             scene.add(edge);
             return edge;
         });
+
+        this.hasBoundingBox = true;
     }
 
     removeBoundingBox() {
@@ -207,6 +211,8 @@ class Model extends THREE.Mesh {
 
         this.corners = [];
         this.edges = [];
+
+        this.hasBoundingBox = false;
     }
 
     setColor(color) {
@@ -217,13 +223,6 @@ class Model extends THREE.Mesh {
         this.selected = !this.selected;
         this.boundingBox = (this.selected ? this.createBoundingBox() : this.removeBoundingBox());
         this.setColor(this.selected ? this.colorSelected : this.color);
-    }
-
-    dispose() {
-        this.removeBoundingBox();
-        scene.remove(this);
-        this.geometry.dispose();
-        this.material.dispose();
     }
 }
 
@@ -265,7 +264,6 @@ function init() {
     printBed.render();
     light.render();
 
-    document.getElementById("loadSTLButton").addEventListener("change", loadSTL);
     document.getElementById("clearButton").addEventListener("click", clearAll);
 
     renderer.domElement.addEventListener("click", selectObject, false);
@@ -437,6 +435,7 @@ function drawPoints(layers) {
 
 function selectObject(event) {
     event.preventDefault();
+    if (sliced) return;
 
     const mouse = new THREE.Vector2();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -458,19 +457,20 @@ function clearScene() {
     imported.forEach(model => {
         if (model.geometry) model.geometry.dispose();
         if (model.material) model.material.dispose();
+        if (model.hasBoundingBox) model.removeBoundingBox();
         scene.remove(model);
     });
-
-    imported = [];
-
-    document.getElementById("loadSTLButton").value = "";
 
     renderer.render(scene, camera);
 }
 
 function clearAll() {
     clearScene();
+    sliced = false;
+    imported = [];
     layers = []
+
+    document.getElementById("loadSTLButton").value = "";
 }
 
 
@@ -480,6 +480,7 @@ function clearAll() {
 let scene, camera, renderer, controls, printBed, light;
 let imported = [];
 let layers = [];
+let sliced = false;
 
 init();
 
@@ -495,7 +496,12 @@ slicerModule().then((module) => {
 let stlDataPointer = null;
 let stlSize = 0;
 
+document.getElementById("loadSTLButton").addEventListener("click", async (event) => {
+    clearAll();
+});
+
 document.getElementById("loadSTLButton").addEventListener("change", async (event) => {
+    loadSTL(event);
     const file = event.target.files[0];
     if (!file || !slicer) return;
 
@@ -514,7 +520,7 @@ document.getElementById("loadSTLButton").addEventListener("change", async (event
 });
 
 document.getElementById("sliceButton").addEventListener("click", () => {
-    if (!slicer || !stlDataPointer) {
+    if (!slicer || !stlDataPointer || sliced) {
         return;
     }
 
@@ -541,6 +547,7 @@ document.getElementById("sliceButton").addEventListener("click", () => {
 
     clearScene()
     drawLayers(layers)
+    sliced = true;
 
     slicer._free(totalPointsPointer);
 });
