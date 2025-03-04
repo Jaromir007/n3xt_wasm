@@ -338,7 +338,7 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-function diplaySTL(event) {
+function displaySTL(event) {
     const file = event.dataTransfer ? event.dataTransfer.files[0] : event.target.files[0];
     if (!file) return;
 
@@ -526,10 +526,9 @@ renderer.domElement.addEventListener("dragover", (event) => {
 
 renderer.domElement.addEventListener("drop", async (event) => {
     event.preventDefault();
-    diplaySTL(event);
+    displaySTL(event);
     await loadSTL(event);
 });
-
 
 
 loadSTLButton.addEventListener("click", () => {
@@ -537,7 +536,7 @@ loadSTLButton.addEventListener("click", () => {
 });
 
 loadSTLButton.addEventListener("change", async (event) => {
-    diplaySTL(event);
+    displaySTL(event);
     await loadSTL(event);
 });
 
