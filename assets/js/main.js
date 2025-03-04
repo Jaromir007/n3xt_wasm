@@ -3,6 +3,8 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import slicerModule from "./slicer.js";
 
+console.log("deploy")
+
 class Config {
     // Print bed
     static PRINT_BED_SIZE = 200;
@@ -148,7 +150,7 @@ class Model extends THREE.Mesh {
     createBoundingBox() {
         const box = new THREE.Box3().setFromObject(this);
         const cornerGeometry = new THREE.SphereGeometry(0.5, 8, 8);
-        const cornerMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });    
+        const cornerMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
         this.corners = [
             new THREE.Vector3(box.min.x, box.min.y, box.min.z),
