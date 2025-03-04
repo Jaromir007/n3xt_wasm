@@ -336,8 +336,8 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-function loadSTL(event) {
-    const file = event.target.files[0];
+function diplaySTL(event) {
+    const file = event.dataTransfer ? event.dataTransfer.files[0] : event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
@@ -484,8 +484,12 @@ let sliced = false;
 
 init();
 
-
 let slicer;
+const loadSTLButton = document.getElementById("loadSTLButton");
+const sliceButton = document.getElementById("sliceButton");
+const drawLayersButton = document.getElementById("drawLayersButton");
+const drawPointsButton = document.getElementById("drawPointsButton");
+
 slicerModule().then((module) => {
     slicer = module;
     console.log("WASM loaded");
@@ -496,13 +500,8 @@ slicerModule().then((module) => {
 let stlDataPointer = null;
 let stlSize = 0;
 
-document.getElementById("loadSTLButton").addEventListener("click", async (event) => {
-    clearAll();
-});
-
-document.getElementById("loadSTLButton").addEventListener("change", async (event) => {
-    loadSTL(event);
-    const file = event.target.files[0];
+async function loadSTL(event) {
+    const file = event.dataTransfer ? event.dataTransfer.files[0] : event.target.files[0];
     if (!file || !slicer) return;
 
     const arrayBuffer = await file.arrayBuffer();
@@ -517,9 +516,30 @@ document.getElementById("loadSTLButton").addEventListener("change", async (event
     slicer.HEAPU8.set(byteArray, stlDataPointer);
 
     slicer._parseSTL(stlDataPointer, stlSize);
+}
+
+renderer.domElement.addEventListener("dragover", (event) => {
+    event.preventDefault();
 });
 
-document.getElementById("sliceButton").addEventListener("click", () => {
+renderer.domElement.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    diplaySTL(event);
+    await loadSTL(event);
+});
+
+
+
+loadSTLButton.addEventListener("click", () => {
+    clearAll();
+});
+
+loadSTLButton.addEventListener("change", async (event) => {
+    diplaySTL(event);
+    await loadSTL(event);
+});
+
+sliceButton.addEventListener("click", () => {
     if (!slicer || !stlDataPointer || sliced) {
         return;
     }
@@ -552,14 +572,16 @@ document.getElementById("sliceButton").addEventListener("click", () => {
     slicer._free(totalPointsPointer);
 });
 
-document.getElementById("drawLayersButton").addEventListener("click", () => {
+
+
+drawLayersButton.addEventListener("click", () => {
     if (layers.length > 0) {
         clearScene()
         drawLayers(layers)
     }
 });
 
-document.getElementById("drawPointsButton").addEventListener("click", () => {
+drawPointsButton.addEventListener("click", () => {
     if (layers.length > 0) {
         clearScene()
         drawPoints(layers)
