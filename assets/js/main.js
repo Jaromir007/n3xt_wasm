@@ -48,9 +48,9 @@ class PrintBed {
         loader.load('./assets/stl/prusa_bed.stl', (geometry) => {
             geometry.center();
             const material = new THREE.MeshStandardMaterial({
-            color: this.color,
-            roughness: 1,
-            metalness: 0.1
+                color: this.color,
+                roughness: 1,
+                metalness: 0.1
             });
 
             this.bed = new THREE.Mesh(geometry, material);
@@ -61,11 +61,11 @@ class PrintBed {
             // Outline
             const outlineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
             const outlineGeometry = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(-this.size.x / 2, 0, -this.size.y / 2),
-            new THREE.Vector3(this.size.x / 2, 0, -this.size.y / 2),
-            new THREE.Vector3(this.size.x / 2, 0, this.size.y / 2),
-            new THREE.Vector3(-this.size.x / 2, 0, this.size.y / 2),
-            new THREE.Vector3(-this.size.x / 2, 0, -this.size.y / 2)
+                new THREE.Vector3(-this.size.x / 2, 0, -this.size.y / 2),
+                new THREE.Vector3(this.size.x / 2, 0, -this.size.y / 2),
+                new THREE.Vector3(this.size.x / 2, 0, this.size.y / 2),
+                new THREE.Vector3(-this.size.x / 2, 0, this.size.y / 2),
+                new THREE.Vector3(-this.size.x / 2, 0, -this.size.y / 2)
             ]);
             const outline = new THREE.Line(outlineGeometry, outlineMaterial);
             scene.add(outline);
@@ -77,21 +77,21 @@ class PrintBed {
 
             const sizeX = this.size.x - 0.4;
             const sizeY = this.size.y - 10;
-            
+
             const stepX = sizeX / 5;
             const stepY = sizeY / 4;
 
             for (let i = -sizeX / 2; i <= sizeX / 2; i += stepX) {
                 gridVertices.push(i, 0, -sizeY / 2, i, 0, sizeY / 2);
             }
-            for (let j = -sizeY / 2; j <= sizeY  / 2; j += stepY) {
+            for (let j = -sizeY / 2; j <= sizeY / 2; j += stepY) {
                 gridVertices.push(-sizeX / 2, 0, j, sizeX / 2, 0, j);
             }
 
             gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(gridVertices, 3));
             const grid = new THREE.LineSegments(gridGeometry, gridMaterial);
             scene.add(grid);
-    
+
         });
 
         // X axis (red)
@@ -254,7 +254,7 @@ function init() {
     scene.background = new THREE.Color(0xbbbbbb);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 100, 200);
+    camera.position.set(0, 225, 150);
 
     const slicerCanvas = document.getElementById("slicerCanvas");
     renderer = new THREE.WebGLRenderer({
@@ -275,7 +275,7 @@ function init() {
         RIGHT: THREE.MOUSE.PAN
     };
 
-    printBed = new PrintBed(200, 1);
+    printBed = new PrintBed();
     light = new Light();
 
     printBed.render();
@@ -294,31 +294,31 @@ function cameraPosition(event) {
     switch (event.key.toLowerCase()) {
         case "b": // Reset 
             controls.reset();
-            camera.position.set(0, 100, 200);
+            camera.position.set(0, 225, 150);
             break;
         case "z": // Zoom out 
             zoomToScene();
             break;
         case "0": // Isometric view
-            camera.position.set(150, 150, 150);
+            camera.position.set(150, 225, 150);
             break;
         case "1": // Top-down view
-            camera.position.set(0, 200, 0);
+            camera.position.set(0, 225, 0);
             break;
         case "2": // Bottom-up view
             camera.position.set(0, 0, 250);
             break;
         case "3": // Front view
-            camera.position.set(0, 100, 200);
+            camera.position.set(0, 225, 150);
             break;
         case "4": // Back view
-            camera.position.set(0, 100, -200);
+            camera.position.set(0, 225, -150);
             break;
         case "5": // Left view
-            camera.position.set(-200, 100, 0);
+            camera.position.set(-225, 150, 0);
             break;
         case "6": // Right view
-            camera.position.set(200, 100, 0);
+            camera.position.set(225, 150, 0);
             break;
         case "i": // Zoom in
             camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()), -10);
