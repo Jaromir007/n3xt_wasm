@@ -16,7 +16,7 @@ class Config {
     static LIGHT_COLOR = 0xffffff;
     static LIGHT_INTENSITY = 0.3;
     static HEMISPHERE_LIGHT_COLOR = 0x444444;
-    static HEMISPHERE_LIGHT_INTENSITY = 0.8;
+    static HEMISPHERE_LIGHT_INTENSITY = 0.6;
     static LIGHT_POSITION = { x: 0, y: 250, z: 0 };
 
     // Model
@@ -413,7 +413,7 @@ function drawLayers(layers) {
     layers.forEach((layer, i) => {
         const zHeight = i * 0.2;
         layer.forEach(p => {
-            vertices.push(p.x, zHeight, p.y);
+            vertices.push(p.x, zHeight, -p.y);
         });
     });
 
@@ -436,7 +436,7 @@ function drawPoints(layers) {
         const color = 0xff0000;
 
         layer.forEach(p => {
-            vertices.push(p.x, zHeight, p.y);
+            vertices.push(p.x, zHeight, -p.y);
         });
 
         points.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
