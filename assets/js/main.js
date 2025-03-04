@@ -3,25 +3,21 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import slicerModule from "./slicer.js";
 
-console.log("deploy")
 
 class Config {
     // Print bed
-    static PRINT_BED_SIZE = 200;
+    static PRINT_BED_SIZE = new THREE.Vector2(250, 210);
     static PRINT_BED_HEIGHT = 1;
-    static GRID_SIZE = 50;
-    static SMALL_GRID_SIZE = 10;
-    static AXIS_SIZE = 10;
+    static AXIS_SIZE = 15;
     static PRINT_BED_COLOR = 0x131313;
     static LINE_COLOR = 0x666666;
-    static SMALL_LINE_COLOR = 0x555555;
 
     // Light
     static LIGHT_COLOR = 0xffffff;
     static LIGHT_INTENSITY = 0.3;
     static HEMISPHERE_LIGHT_COLOR = 0x444444;
     static HEMISPHERE_LIGHT_INTENSITY = 0.8;
-    static LIGHT_POSITION = { x: 0, y: 100, z: 0 };
+    static LIGHT_POSITION = { x: 0, y: 250, z: 0 };
 
     // Model
     static MODEL_COLOR = 0xff8c00;
@@ -37,73 +33,92 @@ class PrintBed {
         this.height = Config.PRINT_BED_HEIGHT;
 
         this.color = Config.PRINT_BED_COLOR;
-        this.lineColor = Config.LINE_COLOR;
-        this.smallLineColor = Config.SMALL_LINE_COLOR;
-
-        this.gridSize = Config.GRID_SIZE;
-        this.smallGridSize = Config.SMALL_GRID_SIZE;
-
         this.axisSize = Config.AXIS_SIZE;
 
         this.xAxis = null;
         this.yAxis = null;
         this.zAxis = null;
-
         this.bed = null;
-        this.gridHelper = null;
-        this.smallGridHelper = null;
 
         this.init();
     }
 
     init() {
-        const geometry = new THREE.BoxGeometry(this.size, this.height, this.size);
-        const material = new THREE.MeshStandardMaterial({
+        const loader = new STLLoader();
+        loader.load('./assets/stl/prusa_bed.stl', (geometry) => {
+            geometry.center();
+            const material = new THREE.MeshStandardMaterial({
             color: this.color,
             roughness: 1,
             metalness: 0.1
+            });
+
+            this.bed = new THREE.Mesh(geometry, material);
+            this.bed.position.y = -this.height / 2;
+            this.bed.position.x = 0;
+            scene.add(this.bed);
+
+            // Outline
+            const outlineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+            const outlineGeometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(-this.size.x / 2, 0, -this.size.y / 2),
+            new THREE.Vector3(this.size.x / 2, 0, -this.size.y / 2),
+            new THREE.Vector3(this.size.x / 2, 0, this.size.y / 2),
+            new THREE.Vector3(-this.size.x / 2, 0, this.size.y / 2),
+            new THREE.Vector3(-this.size.x / 2, 0, -this.size.y / 2)
+            ]);
+            const outline = new THREE.Line(outlineGeometry, outlineMaterial);
+            scene.add(outline);
+
+            // Grid
+            const gridMaterial = new THREE.LineBasicMaterial({ color: 0x666666 });
+            const gridGeometry = new THREE.BufferGeometry();
+            const gridVertices = [];
+
+            const sizeX = this.size.x - 0.4;
+            const sizeY = this.size.y - 10;
+            
+            const stepX = sizeX / 5;
+            const stepY = sizeY / 4;
+
+            for (let i = -sizeX / 2; i <= sizeX / 2; i += stepX) {
+                gridVertices.push(i, 0, -sizeY / 2, i, 0, sizeY / 2);
+            }
+            for (let j = -sizeY / 2; j <= sizeY  / 2; j += stepY) {
+                gridVertices.push(-sizeX / 2, 0, j, sizeX / 2, 0, j);
+            }
+
+            gridGeometry.setAttribute('position', new THREE.Float32BufferAttribute(gridVertices, 3));
+            const grid = new THREE.LineSegments(gridGeometry, gridMaterial);
+            scene.add(grid);
+    
         });
-
-        this.bed = new THREE.Mesh(geometry, material);
-        this.bed.position.y = -this.height / 2;
-
-        this.gridHelper = new THREE.GridHelper(this.size, this.size / this.gridSize, this.lineColor, this.lineColor);
-        this.gridHelper.position.y = 0.01;
-        this.gridHelper.material.linewidth = 2;
-
-        this.smallGridHelper = new THREE.GridHelper(this.size, this.size / this.smallGridSize, this.smallLineColor, this.smallLineColor);
-        this.smallGridHelper.position.y = 0;
-        this.smallGridHelper.material.linewidth = 1;
 
         // X axis (red)
         const xAxisMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
         const xAxisGeometry = new THREE.BoxGeometry(this.axisSize, 1, 1);
         this.xAxis = new THREE.Mesh(xAxisGeometry, xAxisMaterial);
-        this.xAxis.position.set(this.axisSize / 2 - this.size / 2, 0.5, this.size / 2);
+        this.xAxis.position.set(this.axisSize / 2 - this.size.x / 2, 0.5, this.size.y / 2);
 
         // Y axis (green)
         const yAxisMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
         const yAxisGeometry = new THREE.BoxGeometry(1, 1, this.axisSize);
         this.yAxis = new THREE.Mesh(yAxisGeometry, yAxisMaterial);
-        this.yAxis.position.set(-this.size / 2, 0.5, this.size / 2 - this.axisSize / 2);
+        this.yAxis.position.set(-this.size.x / 2, 0.5, this.size.y / 2 - this.axisSize / 2);
 
         // Z axis (blue)
         const zAxisMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
         const zAxisGeometry = new THREE.BoxGeometry(1, this.axisSize, 1);
         this.zAxis = new THREE.Mesh(zAxisGeometry, zAxisMaterial);
-        this.zAxis.position.set(-this.size / 2, this.axisSize / 2, this.size / 2);
+        this.zAxis.position.set(-this.size.x / 2, this.axisSize / 2, this.size.y / 2);
     }
 
     render() {
-        scene.add(this.bed);
-        scene.add(this.gridHelper);
-        scene.add(this.smallGridHelper);
         scene.add(this.xAxis);
         scene.add(this.yAxis);
         scene.add(this.zAxis);
     }
 }
-
 
 class Light {
     constructor() {
