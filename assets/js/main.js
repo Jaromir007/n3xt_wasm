@@ -9,14 +9,14 @@ class Config {
     static PRINT_BED_SIZE = new THREE.Vector2(250, 210);
     static PRINT_BED_HEIGHT = 1;
     static AXIS_SIZE = 15;
-    static PRINT_BED_COLOR = 0x131313;
+    static PRINT_BED_COLOR = 0x111111;
     static LINE_COLOR = 0x666666;
 
     // Light
     static LIGHT_COLOR = 0xffffff;
-    static LIGHT_INTENSITY = 0.3;
+    static LIGHT_INTENSITY = 0.5;
     static HEMISPHERE_LIGHT_COLOR = 0x444444;
-    static HEMISPHERE_LIGHT_INTENSITY = 0.6;
+    static HEMISPHERE_LIGHT_INTENSITY = 0.5;
     static LIGHT_POSITION = { x: 0, y: 250, z: 0 };
 
     // Model
@@ -133,6 +133,22 @@ class Light {
     init() {
         this.light.position.set(this.position.x, this.position.y, this.position.z);
         this.hemisphereLight.position.set(this.position.x, this.position.y, this.position.z);
+
+        // default light
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+        scene.add(ambientLight);
+
+        const spotLight = new THREE.SpotLight(0xffffff, 0.3);
+        spotLight.position.set(-250, 250, -250);
+        spotLight.angle = Math.PI / 6;
+        spotLight.penumbra = 0.1;
+        spotLight.decay = 2;
+        spotLight.distance = 250;
+        spotLight.castShadow = true;
+        scene.add(spotLight);
+
+        const hemiLight = new THREE.HemisphereLight(0xffffbb, 0x080820, 0.5);
+        scene.add(hemiLight);
     }
 
     render() {
@@ -154,7 +170,7 @@ class Model extends THREE.Mesh {
 
         this.material = new THREE.MeshStandardMaterial({
             color: this.color,
-            roughness: 0.5,
+            roughness: 0.6,
             metalness: 0.3
         });
 
@@ -251,7 +267,7 @@ class Model extends THREE.Mesh {
 
 function init() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xbbbbbb);
+    scene.background = new THREE.Color(0xe0e0e0);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 225, 150);
@@ -604,3 +620,12 @@ drawPointsButton.addEventListener("click", () => {
     }
 });
 
+window.addEventListener("keydown", (event) => {
+    if (event.key === "Delete" || event.key === "Backspace") {
+        imported.forEach(model => {
+            if (model.selected) {
+                clearAll();
+            }
+        })
+    }
+});
