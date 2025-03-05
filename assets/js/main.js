@@ -503,6 +503,7 @@ function clearAll() {
     imported = [];
     layers = [];
 
+    downloadGcodeButton.style.display = "none";
     document.getElementById("loadSTLButton").value = "";
 }
 
@@ -522,6 +523,7 @@ const loadSTLButton = document.getElementById("loadSTLButton");
 const sliceButton = document.getElementById("sliceButton");
 const drawLayersButton = document.getElementById("drawLayersButton");
 const drawPointsButton = document.getElementById("drawPointsButton");
+const downloadGcodeButton = document.getElementById("downloadGcodeButton");
 
 slicerModule().then((module) => {
     slicer = module;
@@ -600,6 +602,7 @@ sliceButton.addEventListener("click", () => {
     clearScene()
     drawLayers(layers)
     sliced = true;
+    downloadGcodeButton.style.display = "block";
 
     slicer._free(totalPointsPointer);
 });
@@ -629,3 +632,4 @@ window.addEventListener("keydown", (event) => {
         })
     }
 });
+
