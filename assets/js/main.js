@@ -337,10 +337,10 @@ function cameraPosition(event) {
             camera.position.set(225, 150, 0);
             break;
         case "i": // Zoom in
-            camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()), -10);
+            camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()), 10);
             break;
         case "o": // Zoom out
-            camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()), 10);
+            camera.position.addScaledVector(camera.getWorldDirection(new THREE.Vector3()), -10);
             break;
     }
     controls.update();

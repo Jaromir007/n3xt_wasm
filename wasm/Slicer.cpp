@@ -16,6 +16,7 @@ struct P2 {
 struct Vec3 {
     float x, y, z;
 };
+
 struct Triangle {
     Vec3 v1, v2, v3;
     float minZ, maxZ;
