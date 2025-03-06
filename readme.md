@@ -3,7 +3,7 @@ Vedlejší repozitář pro přepis sliceru do C++
 
 [Naše cíle](goals.md)
 
-## Zadání - do 6.3. 2025
+## Zadání - do 9.3. 2025
 
 Jára: Logika sliceru - C++ a WASM 
 
