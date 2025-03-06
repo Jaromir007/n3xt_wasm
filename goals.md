@@ -1,4 +1,4 @@
-### N3XT - SLICER
+# N3XT - SLICER
 
 Děláme webový slicer, který poběží na všech zařízeních (windows, linux, android… počítač i mobil). 
 
@@ -23,7 +23,7 @@ Všechno nastavení se potom uloží pro WASM modul, který všechno vezme v pot
 
 Vygeneruje G-Code, který se potom zobrazí na tiskové podložce. Uživatel si ho bude moct stáhnout. 
 
-### N3XT - WEB
+## N3XT - WEB
 
 Na webu bude i blog s články o projektu - vysvětlení jak slicování funguje, ukázky kódu atd.. 
 
@@ -34,10 +34,3 @@ Pro začátek bude formátování v Markdown. Články může  nahrávat jenom a
 - .md se vyrendruje do HTML a uloží se jako nová url v sekci blog (aby byl článek dohledatelný v browserech)
 - Poté možnost upravovat články, mazat, měnit kategorii atd..
 
-### Rozdělení:
-
-Jára: Logika sliceru - C++ a WASM 
-
-MKZ: UI sliceru - všechno v THREE.JS 
-
-Michal: Django - hlavně redakční systém
