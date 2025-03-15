@@ -1,4 +1,9 @@
-emcc Slicer.cpp -o slicer.js \
+emcc cpp/Slicer.cpp \
+    cpp/Clipper2Lib/src/clipper.engine.cpp \
+    cpp/Clipper2Lib/src/clipper.offset.cpp \
+    cpp/Clipper2Lib/src/clipper.rectclip.cpp \
+    -Icpp/Clipper2Lib/include \
+    -o assets/js/slicer.js \
     -s MODULARIZE=1 \
     -s EXPORT_ES6=1 \
     -s ENVIRONMENT=web \
