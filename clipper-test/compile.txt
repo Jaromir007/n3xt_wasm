@@ -1,0 +1,1 @@
+g++ main.cpp Clipper2Lib/compiled/*.o -IClipper2Lib/include -o main

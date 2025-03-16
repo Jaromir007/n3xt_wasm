@@ -5,9 +5,9 @@
 #include <emscripten.h>
 #include <cstdlib>
 #include "Clipper2Lib/include/clipper2/clipper.h"
-using namespace Clipper2Lib;
 
 using namespace std;
+using namespace Clipper2Lib;
 
 extern "C" {
 
