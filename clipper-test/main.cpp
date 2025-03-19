@@ -23,7 +23,8 @@ struct Triangle {
 }; 
 
 vector<Triangle> triangles; 
-PathsD sliced; 
+vector<Path64> sliced; 
+const double SCALE_FACTOR = 1000000.0; // 1e6 = 1 micrometer
 
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
@@ -63,28 +64,23 @@ int slice(float layerHeight) {
     }
 
     for (float zp = minZ; zp <= maxZ; zp += layerHeight) {
-        PathsD layer; 
+        Path64 layer; 
 
         for(const auto& tri : triangles) {
             if (zp < tri.minZ || zp > tri.maxZ) continue; 
             Vec3 edges[3][2] = {{tri.v1, tri.v2}, {tri.v2, tri.v3}, {tri.v3, tri.v1}}; 
-            PathD path; 
             for (auto& edge : edges) {
                 Vec3 p1 = edge[0], p2 = edge[1]; 
                 if ((p1.z < zp && p2.z > zp) || (p1.z > zp && p2.z < zp)) {
                     float t = (zp - p1.z) / (p2.z - p1.z); 
-                    
-                    path.push_back({
-                        p1.x + t * (p2.x - p1.x), 
-                        p1.y + t * (p2.y - p1.y)
-                    }); 
+                    double x = p1.x + t * (p2.x - p1.x); 
+                    double y = p1.y + t * (p2.y - p1.y); 
+                    layer.push_back(Point64(round(x * SCALE_FACTOR), round(y * SCALE_FACTOR))); 
                 }
             }
-            if (path.size() >= 2) layer.push_back(path); 
         }
-        
         if (!layer.empty()) {
-            sliced.insert(sliced.end(), layer.begin(), layer.end()); 
+            sliced.push_back(layer);
         }
     }
 
@@ -117,34 +113,9 @@ int main(int argc, char* argv[]) {
     slice(layerHeight); 
 
     cout << "slicing performed successfully, sliced " << trianglesSize / 50 << " triangles in total." << endl; 
-    cout << "Total sliced paths: " << sliced.size() << endl;
-
-    PathsD cleanContours;
-    ClipperD clipper;
-    clipper.AddSubject(sliced);
-    clipper.Execute(ClipType::Union, FillRule::NonZero, cleanContours);
-    
-    vector<PathD> outerContours;
-    vector<PathD> holes;
-    
-    for (const auto& path : cleanContours) {
-        if (IsPositive(path)) { 
-            outerContours.push_back(path); 
-        } else { 
-            holes.push_back(path); 
-        }
-    }
-    
-    cout << "Total outer contours: " << outerContours.size() << endl;
-    cout << "Total holes: " << holes.size() << endl;
-
-    int openPaths = 0;
-    for (const auto& path : sliced) {
-        if (path.size() < 3 || path.front() != path.back()) {  // Check if first and last point match
-            openPaths++;
-        }
-    }
-    cout << "Open paths: " << openPaths << " / " << sliced.size() << endl;
-
-        
+    cout << "Total layers: " << sliced.size() << endl;  
+    for(int i = 0; i < sliced.size(); i++) {
+        cout << sliced[i] << endl; 
+        cout << "new layer" << endl; 
+    }    
 }
