@@ -139,12 +139,12 @@ int main(int argc, char* argv[]) {
     cout << "Total holes: " << holes.size() << endl;
 
     int openPaths = 0;
-for (const auto& path : sliced) {
-    if (path.size() < 3 || path.front() != path.back()) {  // Check if first and last point match
-        openPaths++;
+    for (const auto& path : sliced) {
+        if (path.size() < 3 || path.front() != path.back()) {  // Check if first and last point match
+            openPaths++;
+        }
     }
-}
-cout << "Open paths: " << openPaths << " / " << sliced.size() << endl;
+    cout << "Open paths: " << openPaths << " / " << sliced.size() << endl;
 
-    
+        
 }
