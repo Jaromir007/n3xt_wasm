@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <cstring>
 #include <fstream>
+#include <sstream>
 #include "clipper2/clipper.h"
 
 using namespace std;
@@ -23,7 +24,8 @@ struct Triangle {
 }; 
 
 vector<Triangle> triangles; 
-vector<Path64> sliced; 
+vector<Paths64> sliced; 
+
 const double SCALE_FACTOR = 1000000.0; // 1e6 = 1 micrometer
 
 int parseSTL(const uint8_t* data, int length) {
@@ -37,11 +39,11 @@ int parseSTL(const uint8_t* data, int length) {
     triangles.clear(); 
     const uint8_t* ptr = data + 84; 
 
-    for(uint32_t i = 0; i < numTriangles * 50; i++) {
+    for(int i = 0; i < numTriangles; i++) {
         Vec3 v1, v2, v3; 
         memcpy(&v1, ptr + 12, sizeof(Vec3)); 
         memcpy(&v2, ptr + 24, sizeof(Vec3)); 
-        memcpy(&v3, ptr + 32, sizeof(Vec3)); 
+        memcpy(&v3, ptr + 36, sizeof(Vec3)); 
 
         triangles.emplace_back(v1, v2, v3); 
         ptr += 50; 
@@ -53,7 +55,7 @@ int slice(float layerHeight) {
     sliced.clear(); 
 
     if (triangles.empty())  {
-        cout << "triangles are empty!"; 
+        cout << "[slice] Triangles are empty!"; 
         return 0; 
     };
 
@@ -64,20 +66,33 @@ int slice(float layerHeight) {
     }
 
     for (float zp = minZ; zp <= maxZ; zp += layerHeight) {
-        Path64 layer; 
-
+        Paths64 layer; 
+        
         for(const auto& tri : triangles) {
             if (zp < tri.minZ || zp > tri.maxZ) continue; 
             Vec3 edges[3][2] = {{tri.v1, tri.v2}, {tri.v2, tri.v3}, {tri.v3, tri.v1}}; 
+            Path64 intersects; 
             for (auto& edge : edges) {
-                Vec3 p1 = edge[0], p2 = edge[1]; 
-                if ((p1.z < zp && p2.z > zp) || (p1.z > zp && p2.z < zp)) {
-                    float t = (zp - p1.z) / (p2.z - p1.z); 
-                    double x = p1.x + t * (p2.x - p1.x); 
-                    double y = p1.y + t * (p2.y - p1.y); 
-                    layer.push_back(Point64(round(x * SCALE_FACTOR), round(y * SCALE_FACTOR))); 
+                Vec3 v1 = edge[0], v2 = edge[1]; 
+                double x; 
+                double y; 
+                if ((v1.z < zp && v2.z > zp) || (v1.z > zp && v2.z < zp)) {
+                    float t = (zp - v1.z) / (v2.z - v1.z); 
+                    x = v1.x + t * (v2.x - v1.x); 
+                    y = v1.y + t * (v2.y - v1.y); 
                 }
+                else if (v1.z == zp) {
+                    x = v1.x; 
+                    y = v1.y; 
+                }
+
+                else {
+                    x = v2.x; 
+                    y =  v2.y; 
+                }
+                intersects.emplace_back(round(x * SCALE_FACTOR), round(y * SCALE_FACTOR));
             }
+            layer.push_back(intersects); 
         }
         if (!layer.empty()) {
             sliced.push_back(layer);
@@ -87,9 +102,25 @@ int slice(float layerHeight) {
     return 0; 
 }
 
+double distance(const Point64& a, const Point64& b) {
+    return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
+}
+
+int sortPoints(Path64& points) {
+    if (points.empty()) {
+        cout << "[sortPoints] Points are empty " << endl;
+        return 0;
+    }
+
+
+    
+    return 0;
+}
+
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        cout << "no arguments provided!"; 
+        cout << "[main] No arguments provided!"; 
         return 1; 
     }
 
@@ -99,7 +130,7 @@ int main(int argc, char* argv[]) {
     ifstream file(filePath, ios::binary | ios::ate);
     
     if (!file) {
-        cout << "file not found!"; 
+        cout << "[main] File not found!"; 
         return 1; 
     }
 
@@ -112,10 +143,34 @@ int main(int argc, char* argv[]) {
     int trianglesSize = parseSTL(buffer.data(), buffer.size()); 
     slice(layerHeight); 
 
-    cout << "slicing performed successfully, sliced " << trianglesSize / 50 << " triangles in total." << endl; 
+    cout << "slicing performed successfully, sliced " << trianglesSize << " triangles in total." << endl; 
     cout << "Total layers: " << sliced.size() << endl;  
     for(int i = 0; i < sliced.size(); i++) {
-        cout << sliced[i] << endl; 
-        cout << "new layer" << endl; 
+        sortPoints(sliced[i]); 
     }    
+
+    ostringstream json; 
+    
+    json << "[" << endl; 
+    for(int i = 0; i < sliced.size(); i++) {
+        json << "   [" << endl; 
+        for(int j = 0; j < sliced[i].size(); j++) {
+            json << "       [" << sliced[i][j].x / SCALE_FACTOR << ", " << sliced[i][j].y / SCALE_FACTOR << "]"; 
+            if(j < sliced[i].size() - 1) json << ", " << endl;
+        }
+        json << endl << "   ]"; 
+        if(i < sliced.size() - 1) json << ", " << endl; 
+    }
+    json << "]" << endl; 
+
+    ofstream outFile("out.json"); 
+    if(outFile.is_open()) {
+        outFile << json.str(); 
+        outFile.close(); 
+        cout << "saved to JSON" << endl;
+    } else {
+        cerr << "failed to open the file for writing" << endl; 
+    }
+
+    return 0; 
 }
