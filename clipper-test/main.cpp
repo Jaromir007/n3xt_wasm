@@ -3,6 +3,7 @@
 #include <cstring>
 #include <fstream>
 #include <sstream>
+#include <unordered_map>
 #include "clipper2/clipper.h"
 
 using namespace std;
@@ -27,6 +28,18 @@ vector<Triangle> triangles;
 vector<Paths64> sliced; 
 
 const double SCALE_FACTOR = 1000000.0; // 1e6 = 1 micrometer
+
+struct Point64Hash {
+    size_t operator()(const Point64& p) const {
+        return hash<int64_t>()(p.x) ^ (hash<int64_t>()(p.y) << 1);
+    }
+};
+
+Paths64 connectEdges(const Paths64& edges) {
+    unordered_map<Point64, Point64, Point64Hash> edgeMap; 
+
+    return edges;
+}
 
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
@@ -69,9 +82,9 @@ int slice(float layerHeight) {
         Paths64 layer; 
         
         for(const auto& tri : triangles) {
-            if (zp < tri.minZ || zp > tri.maxZ) continue; 
+            if (zp <= tri.minZ || zp >= tri.maxZ) continue; 
             Vec3 edges[3][2] = {{tri.v1, tri.v2}, {tri.v2, tri.v3}, {tri.v3, tri.v1}}; 
-            Path64 intersects; 
+            Path64 intersections; 
             for (auto& edge : edges) {
                 Vec3 v1 = edge[0], v2 = edge[1]; 
                 double x; 
@@ -81,18 +94,15 @@ int slice(float layerHeight) {
                     x = v1.x + t * (v2.x - v1.x); 
                     y = v1.y + t * (v2.y - v1.y); 
                 }
-                else if (v1.z == zp) {
-                    x = v1.x; 
-                    y = v1.y; 
-                }
 
-                else {
-                    x = v2.x; 
-                    y =  v2.y; 
+                Point64 p = {round(x * SCALE_FACTOR), round(y * SCALE_FACTOR)}; 
+                if (intersections.empty() || intersections.back() != p) {
+                    intersections.push_back(p);    
                 }
-                intersects.emplace_back(round(x * SCALE_FACTOR), round(y * SCALE_FACTOR));
             }
-            layer.push_back(intersects); 
+            if(!intersections.empty()) {
+                layer.push_back(intersections); 
+            }
         }
         if (!layer.empty()) {
             sliced.push_back(layer);
@@ -101,22 +111,6 @@ int slice(float layerHeight) {
 
     return 0; 
 }
-
-double distance(const Point64& a, const Point64& b) {
-    return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
-}
-
-int sortPoints(Path64& points) {
-    if (points.empty()) {
-        cout << "[sortPoints] Points are empty " << endl;
-        return 0;
-    }
-
-
-    
-    return 0;
-}
-
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -144,10 +138,7 @@ int main(int argc, char* argv[]) {
     slice(layerHeight); 
 
     cout << "slicing performed successfully, sliced " << trianglesSize << " triangles in total." << endl; 
-    cout << "Total layers: " << sliced.size() << endl;  
-    for(int i = 0; i < sliced.size(); i++) {
-        sortPoints(sliced[i]); 
-    }    
+    cout << "Total layers: " << sliced.size() << endl; 
 
     ostringstream json; 
     
@@ -155,13 +146,18 @@ int main(int argc, char* argv[]) {
     for(int i = 0; i < sliced.size(); i++) {
         json << "   [" << endl; 
         for(int j = 0; j < sliced[i].size(); j++) {
-            json << "       [" << sliced[i][j].x / SCALE_FACTOR << ", " << sliced[i][j].y / SCALE_FACTOR << "]"; 
-            if(j < sliced[i].size() - 1) json << ", " << endl;
+            json << "       [" << endl; 
+            for(int k = 0; k < sliced[i][j].size(); k++) {
+                json << "           [" << sliced[i][j][k].x / SCALE_FACTOR << ", " << sliced[i][j][k].y / SCALE_FACTOR << "]"; 
+                if(k < sliced[i][j].size() -1) json << ", " << endl; 
+            }
+            json << endl << "       ]"; 
+            if(j < sliced[i].size() -1) json << ", " << endl; 
         }
         json << endl << "   ]"; 
-        if(i < sliced.size() - 1) json << ", " << endl; 
+        if(i < sliced.size() -1) json << ", " << endl; 
     }
-    json << "]" << endl; 
+    json << "]"; 
 
     ofstream outFile("out.json"); 
     if(outFile.is_open()) {
