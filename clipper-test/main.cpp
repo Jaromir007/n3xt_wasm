@@ -27,18 +27,13 @@ struct Triangle {
 vector<Triangle> triangles; 
 vector<Paths64> sliced; 
 
-const double SCALE_FACTOR = 1000000.0; // 1e6 = 1 micrometer
-
-struct Point64Hash {
-    size_t operator()(const Point64& p) const {
-        return hash<int64_t>()(p.x) ^ (hash<int64_t>()(p.y) << 1);
-    }
-};
+const double SCALE_FACTOR = 10000.0;
 
 Paths64 connectEdges(const Paths64& edges) {
-    unordered_map<Point64, Point64, Point64Hash> edgeMap; 
+    Paths64 contours; 
+// TODO - construct contours from the edges. 
 
-    return edges;
+    return contours; 
 }
 
 int parseSTL(const uint8_t* data, int length) {
@@ -100,12 +95,11 @@ int slice(float layerHeight) {
                     intersections.push_back(p);    
                 }
             }
-            if(!intersections.empty()) {
-                layer.push_back(intersections); 
-            }
+            if(!intersections.empty()) layer.push_back(intersections); 
         }
         if (!layer.empty()) {
-            sliced.push_back(layer);
+            Paths64 contours = connectEdges(layer);
+            sliced.push_back(contours);
         }
     }
 
