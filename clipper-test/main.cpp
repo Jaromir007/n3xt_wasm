@@ -30,10 +30,14 @@ vector<Paths64> sliced;
 const double SCALE_FACTOR = 10000.0;
 
 Paths64 connectEdges(const Paths64& edges) {
-    Paths64 contours; 
-// TODO - construct contours from the edges. 
+    cout << edges[0][0];
 
-    return contours; 
+    return edges; 
+}
+
+Path64 sortEdge(Path64& edge) {
+    Path64 sorted; 
+    return sorted;
 }
 
 int parseSTL(const uint8_t* data, int length) {
