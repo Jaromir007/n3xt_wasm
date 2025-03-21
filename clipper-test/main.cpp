@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 #include "clipper2/clipper.h"
 
 using namespace std;
@@ -29,15 +30,25 @@ vector<Paths64> sliced;
 
 const double SCALE_FACTOR = 10000.0;
 
-Paths64 connectEdges(const Paths64& edges) {
-    cout << edges[0][0];
-
-    return edges; 
+void sortEdge(Path64& edge) {
+    if (edge.size() != 2) return; 
+    if (edge[0].x > edge[1].x || (edge[0].x == edge[1].x && edge[0].y > edge[1].y)) {
+        swap(edge[0], edge[1]);
+    }
 }
 
-Path64 sortEdge(Path64& edge) {
-    Path64 sorted; 
-    return sorted;
+void sortLayer(Paths64& layer) {
+    for (auto& edge : layer) {
+        sortEdge(edge);
+    }
+
+    sort(layer.begin(), layer.end(), [](const Path64& a, const Path64& b) {
+        return (a[0].x < b[0].x) || (a[0].x == b[0].x && a[0].y < b[0].y) ||
+               (a[0].x == b[0].x && a[0].y == b[0].y && a[1].x < b[1].x) ||
+               (a[0].x == b[0].x && a[0].y == b[0].y && a[1].x == b[1].x && a[1].y < b[1].y);
+    });
+
+    layer.erase(unique(layer.begin(), layer.end()), layer.end());
 }
 
 int parseSTL(const uint8_t* data, int length) {
@@ -92,18 +103,16 @@ int slice(float layerHeight) {
                     float t = (zp - v1.z) / (v2.z - v1.z); 
                     x = v1.x + t * (v2.x - v1.x); 
                     y = v1.y + t * (v2.y - v1.y); 
-                }
-
-                Point64 p = {round(x * SCALE_FACTOR), round(y * SCALE_FACTOR)}; 
-                if (intersections.empty() || intersections.back() != p) {
-                    intersections.push_back(p);    
+                    intersections.push_back(Point64(x * SCALE_FACTOR, round(y * SCALE_FACTOR)));
                 }
             }
-            if(!intersections.empty()) layer.push_back(intersections); 
+            if(!intersections.empty()) {
+                layer.push_back(intersections);
+            } 
         }
         if (!layer.empty()) {
-            Paths64 contours = connectEdges(layer);
-            sliced.push_back(contours);
+            sortLayer(layer);
+            sliced.push_back(layer);
         }
     }
 
@@ -155,7 +164,7 @@ int main(int argc, char* argv[]) {
         json << endl << "   ]"; 
         if(i < sliced.size() -1) json << ", " << endl; 
     }
-    json << "]"; 
+    json << endl << "]"; 
 
     ofstream outFile("out.json"); 
     if(outFile.is_open()) {
