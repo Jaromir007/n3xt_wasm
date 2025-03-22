@@ -80,6 +80,35 @@ void connectEdges(Paths64& layer) {
     }
 }
 
+void createPolygons(Paths64& layer) {
+    if (layer.empty()) return;
+
+    size_t writeIndex = 0;
+
+    while (writeIndex < layer.size()) {
+        Path64 polygon;
+        polygon.push_back(layer[writeIndex][0]);
+        polygon.push_back(layer[writeIndex][1]);
+
+        size_t readIndex = writeIndex + 1;
+
+        while (readIndex < layer.size()) {
+            if (layer[readIndex][0] == polygon.back()) {
+                polygon.push_back(layer[readIndex][1]);
+                layer.erase(layer.begin() + readIndex);
+                readIndex = writeIndex + 1;
+            } else {
+                readIndex++;
+            }
+        }
+
+        layer[writeIndex] = polygon;  
+        writeIndex++;
+    }
+
+    layer.resize(writeIndex); 
+}
+
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
 
@@ -142,6 +171,7 @@ int slice(float layerHeight) {
         if (!layer.empty()) {
             sortLayer(layer);
             connectEdges(layer); 
+            createPolygons(layer); 
             sliced.push_back(layer);
         }
     }
@@ -161,7 +191,7 @@ int main(int argc, char* argv[]) {
     ifstream file(filePath, ios::binary | ios::ate);
     
     if (!file) {
-        cout << "[main] File not found!"; 
+        cout << "[main] File not found!" << endl; 
         return 1; 
     }
 
