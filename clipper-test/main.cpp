@@ -51,37 +51,55 @@ void sortLayer(Paths64& layer) {
     layer.erase(unique(layer.begin(), layer.end()), layer.end());
 }
 
+
+struct Point64Hash {
+    size_t operator()(const Point64& p) const {
+        return hash<int64_t>()(p.x) ^ (hash<int64_t>()(p.y) << 1);
+    }
+};
+
 void connectEdges(Paths64& layer) {
     if (layer.empty()) return;
-    Paths64 polygons;
+    std::unordered_map<Point64, std::vector<Point64>, Point64Hash> edgeMap;
 
-    while (!layer.empty()) {
+    for (const auto& edge : layer) {
+        edgeMap[edge[0]].push_back(edge[1]);
+        edgeMap[edge[1]].push_back(edge[0]);
+    }
+
+    while (!edgeMap.empty()) {
         Path64 polygon;
-        polygon.push_back(layer[0][0]);
-        polygon.push_back(layer[0][1]);
-        layer.erase(layer.begin());
+        auto it = edgeMap.begin();
+        polygon.push_back(it->first);
+        polygon.push_back(it->second.front());
+        edgeMap[it->first].erase(edgeMap[it->first].begin());
+
+        if (edgeMap[it->first].empty()) edgeMap.erase(it->first);
 
         bool found = true;
         while (found) {
             found = false;
-            for (auto it = layer.begin(); it != layer.end(); ++it) {
-                if (polygon.back() == (*it)[0]) {
-                    polygon.push_back((*it)[1]);
-                    layer.erase(it);
-                    found = true;
-                    break;
-                } else if (polygon.back() == (*it)[1]) {
-                    polygon.push_back((*it)[0]);
-                    layer.erase(it);
-                    found = true;
-                    break;
-                }
+            Point64 last = polygon.back();
+
+            if (edgeMap.count(last) && !edgeMap[last].empty()) {
+                Point64 next = edgeMap[last].back();
+                edgeMap[last].pop_back();
+                polygon.push_back(next);
+
+                if (edgeMap[last].empty()) edgeMap.erase(last);
+                found = true;
             }
         }
-        polygons.push_back(polygon);
+
+        if (polygon.size() > 2 && polygon.front() == polygon.back()) {
+            polygons.push_back(polygon);
+        }
     }
+
     layer = polygons;
 }
+
+
 
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
