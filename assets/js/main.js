@@ -520,6 +520,7 @@ init();
 
 let slicer;
 const loadSTLButton = document.getElementById("loadSTLButton");
+const loadJsonButton = document.getElementById("loadJsonButton");
 const sliceButton = document.getElementById("sliceButton");
 const drawLayersButton = document.getElementById("drawLayersButton");
 const drawPointsButton = document.getElementById("drawPointsButton");
@@ -632,4 +633,3 @@ window.addEventListener("keydown", (event) => {
         })
     }
 });
-

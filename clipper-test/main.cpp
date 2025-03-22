@@ -51,62 +51,36 @@ void sortLayer(Paths64& layer) {
     layer.erase(unique(layer.begin(), layer.end()), layer.end());
 }
 
-
-void swapVertices(Path64& edge) {
-    reverse(edge.begin(), edge.end()); 
-}
-
 void connectEdges(Paths64& layer) {
     if (layer.empty()) return;
-    
-    size_t writeIndex = 0;
-    Path64 currentEdge = layer[0];
+    Paths64 polygons;
 
-    for (size_t i = 1; i < layer.size(); ++i) {
-        for (size_t j = i; j < layer.size(); ++j) {
-            if (currentEdge[1] == layer[j][0]) {
-                swap(layer[i], layer[j]);
-                currentEdge = layer[i];
-                writeIndex = i;
-                break;
-            } else if (currentEdge[1] == layer[j][1]) {
-                swapVertices(layer[j]);
-                swap(layer[i], layer[j]);
-                currentEdge = layer[i];
-                writeIndex = i;
-                break;
-            }
-        }
-    }
-}
-
-void createPolygons(Paths64& layer) {
-    if (layer.empty()) return;
-
-    size_t writeIndex = 0;
-
-    while (writeIndex < layer.size()) {
+    while (!layer.empty()) {
         Path64 polygon;
-        polygon.push_back(layer[writeIndex][0]);
-        polygon.push_back(layer[writeIndex][1]);
+        polygon.push_back(layer[0][0]);
+        polygon.push_back(layer[0][1]);
+        layer.erase(layer.begin());
 
-        size_t readIndex = writeIndex + 1;
-
-        while (readIndex < layer.size()) {
-            if (layer[readIndex][0] == polygon.back()) {
-                polygon.push_back(layer[readIndex][1]);
-                layer.erase(layer.begin() + readIndex);
-                readIndex = writeIndex + 1;
-            } else {
-                readIndex++;
+        bool found = true;
+        while (found) {
+            found = false;
+            for (auto it = layer.begin(); it != layer.end(); ++it) {
+                if (polygon.back() == (*it)[0]) {
+                    polygon.push_back((*it)[1]);
+                    layer.erase(it);
+                    found = true;
+                    break;
+                } else if (polygon.back() == (*it)[1]) {
+                    polygon.push_back((*it)[0]);
+                    layer.erase(it);
+                    found = true;
+                    break;
+                }
             }
         }
-
-        layer[writeIndex] = polygon;  
-        writeIndex++;
+        polygons.push_back(polygon);
     }
-
-    layer.resize(writeIndex); 
+    layer = polygons;
 }
 
 int parseSTL(const uint8_t* data, int length) {
@@ -171,7 +145,6 @@ int slice(float layerHeight) {
         if (!layer.empty()) {
             sortLayer(layer);
             connectEdges(layer); 
-            createPolygons(layer); 
             sliced.push_back(layer);
         }
     }
