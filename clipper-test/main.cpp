@@ -32,9 +32,20 @@ vector<Paths64> sliced;
 const double SCALE_FACTOR = 10000.0;
 
 void sortEdge(Path64& edge) {
-    if (edge.size() != 2) return; 
-    if (edge[0].x > edge[1].x || (edge[0].x == edge[1].x && edge[0].y > edge[1].y)) {
-        swap(edge[0], edge[1]);
+    if (edge.size() == 2) {
+        if (edge[0].x > edge[1].x || (edge[0].x == edge[1].x && edge[0].y > edge[1].y)) {
+            swap(edge[0], edge[1]);
+        }
+        return;
+    }
+
+    if (edge.size() == 3) {
+        cout << "3 point edge " << edge << endl; 
+        sort(edge.begin(), edge.end(), [](const Point64& a, const Point64& b) {
+            return (a.x < b.x) || (a.x == b.x && a.y < b.y);
+        });
+        edge.erase(edge.begin() + 1);
+        cout << "edge sorted " << edge << endl; 
     }
 }
 
@@ -60,55 +71,61 @@ struct Point64Hash {
 
 void connectEdges(Paths64& layer) {
     if (layer.empty()) return;
-    
-    unordered_map<Point64, vector<Point64>, Point64Hash> edgeMap;
 
+    unordered_map<Point64, vector<Point64>, Point64Hash> edgeMap;
+    unordered_set<pair<Point64, Point64>, hash<pair<Point64, Point64>>> visitedEdges;
+
+    // Insert edges bidirectionally
     for (const auto& edge : layer) {
+        if (edge.size() != 2) continue; // Ensure it's a valid edge
         edgeMap[edge[0]].push_back(edge[1]);
         edgeMap[edge[1]].push_back(edge[0]);
     }
 
     Paths64 polygons;
-    unordered_set<Point64, Point64Hash> visitedEdges;
+    unordered_set<Point64, Point64Hash> visitedPoints;
 
+    // Iterate over all edges
     while (!edgeMap.empty()) {
         Path64 polygon;
         auto it = edgeMap.begin();
         Point64 start = it->first;
+        Point64 current = start;
         polygon.push_back(start);
 
-        Point64 current = start;
         while (true) {
-            if (edgeMap[current].empty()) break; 
+            if (edgeMap[current].empty()) break;
 
             Point64 next = edgeMap[current].back();
             edgeMap[current].pop_back();
-
             auto& nextEdges = edgeMap[next];
+
+            // Remove reference to the current point from the next point's list
             nextEdges.erase(remove(nextEdges.begin(), nextEdges.end(), current), nextEdges.end());
 
+            // Remove the entry if no more connections exist
             if (nextEdges.empty()) edgeMap.erase(next);
 
             polygon.push_back(next);
             current = next;
 
+            // Close the loop
             if (current == start) {
                 polygons.push_back(polygon);
                 break;
             }
         }
 
-        // if (polygon.size() > 1 && polygon.front() != polygon.back()) {
-        //     polygon.push_back(polygon.front()); 
-        //     polygons.push_back(polygon);
-        // }
+        // If the polygon is incomplete, skip it
+        if (polygon.size() < 3 || polygon.front() != polygon.back()) {
+            continue;
+        }
 
         edgeMap.erase(start);
     }
 
     layer = polygons;
 }
-
 
 
 
@@ -168,9 +185,15 @@ int slice(float layerHeight) {
                     intersections.push_back(Point64(x * SCALE_FACTOR, round(y * SCALE_FACTOR)));
                 }
             }
-            if(!intersections.empty()) {
-                layer.push_back(intersections);
-            } 
+            if (!intersections.empty()) {
+                if (intersections.size() == 3) {
+                    layer.push_back(Path64({intersections[0], intersections[1]}));
+                    layer.push_back(Path64({intersections[1], intersections[2]}));
+                    layer.push_back(Path64({intersections[2], intersections[0]}));
+                } else {
+                    layer.push_back(intersections);
+                }
+            }                               
         }
         if (!layer.empty()) {
             sortLayer(layer);
