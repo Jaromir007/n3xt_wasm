@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "clipper2/clipper.h"
 
@@ -59,45 +60,57 @@ struct Point64Hash {
 
 void connectEdges(Paths64& layer) {
     if (layer.empty()) return;
+    
     unordered_map<Point64, vector<Point64>, Point64Hash> edgeMap;
-    Paths64 polygons;
 
     for (const auto& edge : layer) {
         edgeMap[edge[0]].push_back(edge[1]);
         edgeMap[edge[1]].push_back(edge[0]);
     }
 
+    Paths64 polygons;
+    unordered_set<Point64, Point64Hash> visitedEdges;
+
     while (!edgeMap.empty()) {
         Path64 polygon;
         auto it = edgeMap.begin();
-        polygon.push_back(it->first);
-        polygon.push_back(it->second.front());
-        edgeMap[it->first].erase(edgeMap[it->first].begin());
+        Point64 start = it->first;
+        polygon.push_back(start);
 
-        if (edgeMap[it->first].empty()) edgeMap.erase(it->first);
+        Point64 current = start;
+        while (true) {
+            if (edgeMap[current].empty()) break; 
 
-        bool found = true;
-        while (found) {
-            found = false;
-            Point64 last = polygon.back();
+            Point64 next = edgeMap[current].back();
+            edgeMap[current].pop_back();
 
-            if (edgeMap.count(last) && !edgeMap[last].empty()) {
-                Point64 next = edgeMap[last].back();
-                edgeMap[last].pop_back();
-                polygon.push_back(next);
+            auto& nextEdges = edgeMap[next];
+            nextEdges.erase(remove(nextEdges.begin(), nextEdges.end(), current), nextEdges.end());
 
-                if (edgeMap[last].empty()) edgeMap.erase(last);
-                found = true;
+            if (nextEdges.empty()) edgeMap.erase(next);
+
+            polygon.push_back(next);
+            current = next;
+
+            if (current == start) {
+                polygons.push_back(polygon);
+                break;
             }
         }
 
-        if (polygon.size() > 2 && polygon.front() == polygon.back()) {
-            polygons.push_back(polygon);
-        }
+        // if (polygon.size() > 1 && polygon.front() != polygon.back()) {
+        //     polygon.push_back(polygon.front()); 
+        //     polygons.push_back(polygon);
+        // }
+
+        edgeMap.erase(start);
     }
 
     layer = polygons;
 }
+
+
+
 
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
