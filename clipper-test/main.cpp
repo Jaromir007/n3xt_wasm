@@ -71,62 +71,54 @@ struct Point64Hash {
 
 void connectEdges(Paths64& layer) {
     if (layer.empty()) return;
-
+    
     unordered_map<Point64, vector<Point64>, Point64Hash> edgeMap;
-    unordered_set<pair<Point64, Point64>, hash<pair<Point64, Point64>>> visitedEdges;
 
-    // Insert edges bidirectionally
     for (const auto& edge : layer) {
-        if (edge.size() != 2) continue; // Ensure it's a valid edge
         edgeMap[edge[0]].push_back(edge[1]);
         edgeMap[edge[1]].push_back(edge[0]);
     }
 
     Paths64 polygons;
-    unordered_set<Point64, Point64Hash> visitedPoints;
+    unordered_set<Point64, Point64Hash> visitedEdges;
 
-    // Iterate over all edges
     while (!edgeMap.empty()) {
         Path64 polygon;
         auto it = edgeMap.begin();
         Point64 start = it->first;
-        Point64 current = start;
         polygon.push_back(start);
 
+        Point64 current = start;
         while (true) {
-            if (edgeMap[current].empty()) break;
+            if (edgeMap[current].empty()) break; 
 
             Point64 next = edgeMap[current].back();
             edgeMap[current].pop_back();
-            auto& nextEdges = edgeMap[next];
 
-            // Remove reference to the current point from the next point's list
+            auto& nextEdges = edgeMap[next];
             nextEdges.erase(remove(nextEdges.begin(), nextEdges.end(), current), nextEdges.end());
 
-            // Remove the entry if no more connections exist
             if (nextEdges.empty()) edgeMap.erase(next);
 
             polygon.push_back(next);
             current = next;
 
-            // Close the loop
             if (current == start) {
                 polygons.push_back(polygon);
                 break;
             }
         }
 
-        // If the polygon is incomplete, skip it
-        if (polygon.size() < 3 || polygon.front() != polygon.back()) {
+        // Missing points ????? 
+        if (polygon.size() > 2 && polygon.front() != polygon.back()) {
+            // cout << "bad polygon " << polygon << endl;  
             continue;
         }
-
         edgeMap.erase(start);
     }
 
     layer = polygons;
 }
-
 
 
 int parseSTL(const uint8_t* data, int length) {
