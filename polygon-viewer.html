@@ -42,14 +42,14 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            const light = new THREE.AmbientLight(0x404040, 1); // Ambient light
+            const light = new THREE.AmbientLight(0x404040, 1);
             scene.add(light);
 
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
             directionalLight.position.set(1, 1, 1).normalize();
             scene.add(directionalLight);
 
-            const axesHelper = new THREE.AxesHelper(5);
+            const axesHelper = new THREE.AxesHelper(15);
             scene.add(axesHelper);
 
             controls = new OrbitControls(camera, renderer.domElement);
@@ -57,12 +57,11 @@
             controls.dampingFactor = 0.25;
             controls.screenSpacePanning = false;
 
-            camera.position.z = 5;
+            camera.position.z = 250;
 
             animate();
         }
 
-        // Animation loop
         function animate() {
             requestAnimationFrame(animate);
 
@@ -85,11 +84,11 @@
 
         function drawPolygons(layers) {
             layers.forEach((layer, i) => {
-                const zHeight = i * 0.2; // Layer height
+                const zHeight = i * 0.2;
                 layer.forEach(polygon => {
                     const vertices = [];
                     polygon.forEach(point => {
-                        vertices.push(point[0], zHeight, -point[1]); // Assuming y = z and x = x for Three.js
+                        vertices.push(point[0], zHeight, -point[1]);
                     });
 
                     const geometry = new THREE.BufferGeometry();

@@ -131,8 +131,9 @@ int slice(float layerHeight) {
                 Vec3 v1 = edge[0], v2 = edge[1]; 
                 double x; 
                 double y; 
-                if ((v1.z < zp && v2.z > zp) || (v1.z > zp && v2.z < zp)) {
+                if ((v1.z <= zp && v2.z >= zp) || (v1.z >= zp && v2.z <= zp)) {
                     float t = (zp - v1.z) / (v2.z - v1.z); 
+                    t = max(0.0f, min(1.0f, t)); 
                     x = v1.x + t * (v2.x - v1.x); 
                     y = v1.y + t * (v2.y - v1.y); 
                     intersections.push_back(Point64(x * SCALE_FACTOR, round(y * SCALE_FACTOR)));
