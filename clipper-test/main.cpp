@@ -51,7 +51,6 @@ void sortLayer(Paths64& layer) {
     layer.erase(unique(layer.begin(), layer.end()), layer.end());
 }
 
-
 struct Point64Hash {
     size_t operator()(const Point64& p) const {
         return hash<int64_t>()(p.x) ^ (hash<int64_t>()(p.y) << 1);
@@ -60,7 +59,8 @@ struct Point64Hash {
 
 void connectEdges(Paths64& layer) {
     if (layer.empty()) return;
-    std::unordered_map<Point64, std::vector<Point64>, Point64Hash> edgeMap;
+    unordered_map<Point64, vector<Point64>, Point64Hash> edgeMap;
+    Paths64 polygons;
 
     for (const auto& edge : layer) {
         edgeMap[edge[0]].push_back(edge[1]);
@@ -98,8 +98,6 @@ void connectEdges(Paths64& layer) {
 
     layer = polygons;
 }
-
-
 
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
