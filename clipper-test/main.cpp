@@ -51,6 +51,35 @@ void sortLayer(Paths64& layer) {
     layer.erase(unique(layer.begin(), layer.end()), layer.end());
 }
 
+
+void swapVertices(Path64& edge) {
+    reverse(edge.begin(), edge.end()); 
+}
+
+void connectEdges(Paths64& layer) {
+    if (layer.empty()) return;
+    
+    size_t writeIndex = 0;
+    Path64 currentEdge = layer[0];
+
+    for (size_t i = 1; i < layer.size(); ++i) {
+        for (size_t j = i; j < layer.size(); ++j) {
+            if (currentEdge[1] == layer[j][0]) {
+                swap(layer[i], layer[j]);
+                currentEdge = layer[i];
+                writeIndex = i;
+                break;
+            } else if (currentEdge[1] == layer[j][1]) {
+                swapVertices(layer[j]);
+                swap(layer[i], layer[j]);
+                currentEdge = layer[i];
+                writeIndex = i;
+                break;
+            }
+        }
+    }
+}
+
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
 
@@ -112,6 +141,7 @@ int slice(float layerHeight) {
         }
         if (!layer.empty()) {
             sortLayer(layer);
+            connectEdges(layer); 
             sliced.push_back(layer);
         }
     }
