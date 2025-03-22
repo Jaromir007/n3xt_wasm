@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <vector>
 #include "clipper2/clipper.h"
-
+#include <stack> 
 using namespace std;
 using namespace Clipper2Lib;
 
@@ -38,15 +38,6 @@ void sortEdge(Path64& edge) {
         }
         return;
     }
-
-    if (edge.size() == 3) {
-        cout << "3 point edge " << edge << endl; 
-        sort(edge.begin(), edge.end(), [](const Point64& a, const Point64& b) {
-            return (a.x < b.x) || (a.x == b.x && a.y < b.y);
-        });
-        edge.erase(edge.begin() + 1);
-        cout << "edge sorted " << edge << endl; 
-    }
 }
 
 void sortLayer(Paths64& layer) {
@@ -71,7 +62,7 @@ struct Point64Hash {
 
 void connectEdges(Paths64& layer) {
     if (layer.empty()) return;
-    
+
     unordered_map<Point64, vector<Point64>, Point64Hash> edgeMap;
 
     for (const auto& edge : layer) {
@@ -80,45 +71,47 @@ void connectEdges(Paths64& layer) {
     }
 
     Paths64 polygons;
-    unordered_set<Point64, Point64Hash> visitedEdges;
+    unordered_set<Point64, Point64Hash> visitedNodes;
 
-    while (!edgeMap.empty()) {
-        Path64 polygon;
-        auto it = edgeMap.begin();
-        Point64 start = it->first;
-        polygon.push_back(start);
+    for (const auto& pair : edgeMap) {
+        Point64 start = pair.first;
+        if (visitedNodes.count(start)) continue;  
 
-        Point64 current = start;
-        while (true) {
-            if (edgeMap[current].empty()) break; 
+        stack<Point64> pathStack;
+        vector<Point64> circuit;
+        unordered_set<Point64, Point64Hash> visitedEdges;
 
-            Point64 next = edgeMap[current].back();
-            edgeMap[current].pop_back();
+        pathStack.push(start);
 
-            auto& nextEdges = edgeMap[next];
-            nextEdges.erase(remove(nextEdges.begin(), nextEdges.end(), current), nextEdges.end());
+        while (!pathStack.empty()) {
+            Point64 current = pathStack.top();
 
-            if (nextEdges.empty()) edgeMap.erase(next);
+            if (!edgeMap[current].empty()) {
+                Point64 next = edgeMap[current].back();
+                edgeMap[current].pop_back();
 
-            polygon.push_back(next);
-            current = next;
+                auto& nextEdges = edgeMap[next];
+                nextEdges.erase(remove(nextEdges.begin(), nextEdges.end(), current), nextEdges.end());
 
-            if (current == start) {
-                polygons.push_back(polygon);
-                break;
+                pathStack.push(next);
+                visitedNodes.insert(next);
+            } else {
+                circuit.push_back(current);
+                pathStack.pop();
             }
         }
 
-        // Missing points ????? 
-        if (polygon.size() > 2 && polygon.front() != polygon.back()) {
-            // cout << "bad polygon " << polygon << endl;  
-            continue;
+        if (circuit.size() > 2 && circuit.front() == circuit.back()) {
+            polygons.push_back(circuit);
         }
-        edgeMap.erase(start);
+        else {
+            cout << "bad polygon" << endl; 
+        }
     }
 
     layer = polygons;
 }
+
 
 
 int parseSTL(const uint8_t* data, int length) {
