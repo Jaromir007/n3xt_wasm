@@ -84,7 +84,7 @@
 
         function drawPolygons(layers) {
             layers.forEach((layer, i) => {
-                const zHeight = i * 0.2;
+                const zHeight = i * 0.25;
                 layer.forEach(polygon => {
                     const vertices = [];
                     polygon.forEach(point => {
@@ -95,6 +95,9 @@
                     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
                     const material = new THREE.LineBasicMaterial({ color: Math.random() * 0xffffff });
+
+                    // const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+
 
                     const polygonMesh = new THREE.LineLoop(geometry, material);
 

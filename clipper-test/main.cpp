@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <vector>
 #include "clipper2/clipper.h"
-#include <stack> 
+
 using namespace std;
 using namespace Clipper2Lib;
 
@@ -34,85 +34,43 @@ const double SCALE_FACTOR = 10000.0;
 void sortEdge(Path64& edge) {
     if (edge.size() == 2) {
         if (edge[0].x > edge[1].x || (edge[0].x == edge[1].x && edge[0].y > edge[1].y)) {
-            swap(edge[0], edge[1]);
+            std::swap(edge[0], edge[1]);
         }
-        return;
     }
 }
 
 void sortLayer(Paths64& layer) {
-    for (auto& edge : layer) {
-        sortEdge(edge);
-    }
-
-    sort(layer.begin(), layer.end(), [](const Path64& a, const Path64& b) {
-        return (a[0].x < b[0].x) || (a[0].x == b[0].x && a[0].y < b[0].y) ||
-               (a[0].x == b[0].x && a[0].y == b[0].y && a[1].x < b[1].x) ||
-               (a[0].x == b[0].x && a[0].y == b[0].y && a[1].x == b[1].x && a[1].y < b[1].y);
-    });
-
-    layer.erase(unique(layer.begin(), layer.end()), layer.end());
-}
-
-struct Point64Hash {
-    size_t operator()(const Point64& p) const {
-        return hash<int64_t>()(p.x) ^ (hash<int64_t>()(p.y) << 1);
-    }
-};
-
-void connectEdges(Paths64& layer) {
-    if (layer.empty()) return;
-
-    unordered_map<Point64, vector<Point64>, Point64Hash> edgeMap;
-
-    for (const auto& edge : layer) {
-        edgeMap[edge[0]].push_back(edge[1]);
-        edgeMap[edge[1]].push_back(edge[0]);
-    }
-
-    Paths64 polygons;
-    unordered_set<Point64, Point64Hash> visitedNodes;
-
-    for (const auto& pair : edgeMap) {
-        Point64 start = pair.first;
-        if (visitedNodes.count(start)) continue;  
-
-        stack<Point64> pathStack;
-        vector<Point64> circuit;
-        unordered_set<Point64, Point64Hash> visitedEdges;
-
-        pathStack.push(start);
-
-        while (!pathStack.empty()) {
-            Point64 current = pathStack.top();
-
-            if (!edgeMap[current].empty()) {
-                Point64 next = edgeMap[current].back();
-                edgeMap[current].pop_back();
-
-                auto& nextEdges = edgeMap[next];
-                nextEdges.erase(remove(nextEdges.begin(), nextEdges.end(), current), nextEdges.end());
-
-                pathStack.push(next);
-                visitedNodes.insert(next);
-            } else {
-                circuit.push_back(current);
-                pathStack.pop();
+    Paths64 sortedLayer;
+    
+    while (!layer.empty()) {
+        Path64 currentEdge = move(layer.front());
+        layer.erase(layer.begin());
+        sortedLayer.push_back(currentEdge);
+        
+        bool found;
+        do {
+            found = false;
+            for (auto it = layer.begin(); it != layer.end(); ++it) {
+                if (currentEdge[1] == (*it)[0]) {
+                    sortedLayer.push_back(*it);
+                    currentEdge = *it;
+                    layer.erase(it);
+                    found = true;
+                    break;
+                } else if (currentEdge[1] == (*it)[1]) {
+                    swap((*it)[0], (*it)[1]);
+                    sortedLayer.push_back(*it);
+                    currentEdge = *it;
+                    layer.erase(it);
+                    found = true;
+                    break;
+                }
             }
-        }
-
-        if (circuit.size() > 2 && circuit.front() == circuit.back()) {
-            polygons.push_back(circuit);
-        }
-        else {
-            cout << "bad polygon" << endl; 
-        }
+        } while (found);
     }
-
-    layer = polygons;
+    
+    layer = move(sortedLayer);
 }
-
-
 
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
@@ -155,7 +113,8 @@ int slice(float layerHeight) {
         Paths64 layer; 
         
         for(const auto& tri : triangles) {
-            if (zp <= tri.minZ || zp >= tri.maxZ) continue; 
+            float zp_prev = zp; 
+            if (zp < tri.minZ || zp > tri.maxZ) continue; 
             Vec3 edges[3][2] = {{tri.v1, tri.v2}, {tri.v2, tri.v3}, {tri.v3, tri.v1}}; 
             Path64 intersections; 
             for (auto& edge : edges) {
@@ -170,19 +129,20 @@ int slice(float layerHeight) {
                     intersections.push_back(Point64(x * SCALE_FACTOR, round(y * SCALE_FACTOR)));
                 }
             }
+            zp = zp_prev; 
             if (!intersections.empty()) {
-                if (intersections.size() == 3) {
+                if(intersections.size() == 3) {
                     layer.push_back(Path64({intersections[0], intersections[1]}));
+                    layer.push_back(Path64({intersections[0], intersections[2]}));
                     layer.push_back(Path64({intersections[1], intersections[2]}));
-                    layer.push_back(Path64({intersections[2], intersections[0]}));
-                } else {
-                    layer.push_back(intersections);
                 }
+                else if(intersections.size() == 2){
+                    layer.push_back(intersections);
+                }                
             }                               
         }
         if (!layer.empty()) {
             sortLayer(layer);
-            connectEdges(layer); 
             sliced.push_back(layer);
         }
     }
@@ -222,6 +182,7 @@ int main(int argc, char* argv[]) {
     
     json << "[" << endl; 
     for(int i = 0; i < sliced.size(); i++) {
+        // if(i < sliced.size() - 100) continue; 
         json << "   [" << endl; 
         for(int j = 0; j < sliced[i].size(); j++) {
             json << "       [" << endl; 
