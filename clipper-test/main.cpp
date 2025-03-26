@@ -29,24 +29,20 @@ struct Triangle {
 struct Edge {
     Point64 v1, v2;
     Vec3 normal;
-    Edge(const Vec2& v1, const Vec2& v2, const Vec3& normal) : v1(v1), v2(v2), normal(normal) {}
+    Edge(const Point64& v1, const Point64& v2, const Vec3& normal) : v1(v1), v2(v2), normal(normal) {
+        if (v1.x > v2.x || (v1.x == v2.x && v1.y > v2.y)) {
+            swap(this->v1, this->v2);
+        }
+    }
 }; 
 
 
-using vector<Edge> Edges;
+typedef vector<Edge> Edges;
 
 vector<Triangle> triangles; 
 vector<Edges> sliced; 
 
 const double SCALE_FACTOR = 10000.0;
-
-void sortEdge(Path64& edge) {
-    if (edge.size() == 2) {
-        if (edge[0].x > edge[1].x || (edge[0].x == edge[1].x && edge[0].y > edge[1].y)) {
-            swap(edge[0], edge[1]);
-        }
-    }
-}
 
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
@@ -93,7 +89,7 @@ int slice(float layerHeight) {
             if (zp < tri.minZ || zp > tri.maxZ) continue; 
             Vec3 edges[3][2] = {{tri.v1, tri.v2}, {tri.v2, tri.v3}, {tri.v3, tri.v1}}; 
             Vec3 normal = tri.normal;
-            Point64 intersections[3]; 
+            Path64 intersections; 
             for (auto& edge : edges) {
                 Vec3 v1 = edge[0], v2 = edge[1]; 
                 double x; 
@@ -157,21 +153,22 @@ int main(int argc, char* argv[]) {
     
     json << "[" << endl; 
     for(int i = 0; i < sliced.size(); i++) {
-        // if(i < sliced.size() - 100) continue; 
+        auto& layer = sliced[i]; 
         json << "   [" << endl; 
-        for(int j = 0; j < sliced[i].size(); j++) {
+        for(int j = 0; j < layer.size(); j++) {
+            auto& edge = layer[j];
             json << "       [" << endl; 
-            for(int k = 0; k < sliced[i][j].size(); k++) {
-                json << "           [" << sliced[i][j][k].x / SCALE_FACTOR << ", " << sliced[i][j][k].y / SCALE_FACTOR << "]"; 
-                if(k < sliced[i][j].size() -1) json << ", " << endl; 
-            }
+            json << "           [" << edge.v1 << "], " << endl; 
+            json << "           [" << edge.v2 << "], " << endl; 
+            json << "           [" << edge.normal.x << "," << edge.normal.y << "," << edge.normal.z << "] " << endl;
             json << endl << "       ]"; 
-            if(j < sliced[i].size() -1) json << ", " << endl; 
+            if(j < layer.size() - 1) json << "," << endl; 
         }
         json << endl << "   ]"; 
-        if(i < sliced.size() -1) json << ", " << endl; 
+        if(i < sliced.size() - 1) json << "," << endl; 
     }
     json << endl << "]"; 
+   
 
     ofstream outFile("out.json"); 
     if(outFile.is_open()) {
