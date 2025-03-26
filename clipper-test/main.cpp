@@ -16,60 +16,36 @@ struct Vec3 {
 }; 
 
 struct Triangle {
-    Vec3 v1, v2, v3; 
+    Vec3 v1, v2, v3, normal;  
     float minZ, maxZ; 
 
-    Triangle(const Vec3& v1, const Vec3& v2,const Vec3& v3) 
-        : v1(v1), v2(v2), v3(v3) {
+    Triangle(const Vec3& v1, const Vec3& v2,const Vec3& v3, const Vec3& normal) 
+        : v1(v1), v2(v2), v3(v3), normal(normal) {
             minZ = min({v1.z, v2.z, v3.z}); 
             maxZ = max({v1.z, v2.z, v3.z}); 
         }
 }; 
 
+struct Edge {
+    Point64 v1, v2;
+    Vec3 normal;
+    Edge(const Vec2& v1, const Vec2& v2, const Vec3& normal) : v1(v1), v2(v2), normal(normal) {}
+}; 
+
+
+using vector<Edge> Edges;
+
 vector<Triangle> triangles; 
-vector<Paths64> sliced; 
+vector<Edges> sliced; 
 
 const double SCALE_FACTOR = 10000.0;
 
 void sortEdge(Path64& edge) {
     if (edge.size() == 2) {
         if (edge[0].x > edge[1].x || (edge[0].x == edge[1].x && edge[0].y > edge[1].y)) {
-            std::swap(edge[0], edge[1]);
+            swap(edge[0], edge[1]);
         }
     }
-}
-
-void sortLayer(Paths64& layer) {
-    Paths64 sortedLayer;
-    
-    while (!layer.empty()) {
-        Path64 currentEdge = move(layer.front());
-        layer.erase(layer.begin());
-        sortedLayer.push_back(currentEdge);
-        
-        bool found;
-        do {
-            found = false;
-            for (auto it = layer.begin(); it != layer.end(); ++it) {
-                if (currentEdge[1] == (*it)[0]) {
-                    sortedLayer.push_back(*it);
-                    currentEdge = *it;
-                    layer.erase(it);
-                    found = true;
-                    break;
-                } else if (currentEdge[1] == (*it)[1]) {
-                    swap((*it)[0], (*it)[1]);
-                    sortedLayer.push_back(*it);
-                    currentEdge = *it;
-                    layer.erase(it);
-                    found = true;
-                    break;
-                }
-            }
-        } while (found);
-    }
-    
-    layer = move(sortedLayer);
 }
 
 int parseSTL(const uint8_t* data, int length) {
@@ -84,12 +60,13 @@ int parseSTL(const uint8_t* data, int length) {
     const uint8_t* ptr = data + 84; 
 
     for(int i = 0; i < numTriangles; i++) {
-        Vec3 v1, v2, v3; 
+        Vec3 v1, v2, v3, normal; 
+        memcpy(&normal, ptr, sizeof(Vec3)); 
         memcpy(&v1, ptr + 12, sizeof(Vec3)); 
         memcpy(&v2, ptr + 24, sizeof(Vec3)); 
         memcpy(&v3, ptr + 36, sizeof(Vec3)); 
 
-        triangles.emplace_back(v1, v2, v3); 
+        triangles.emplace_back(v1, v2, v3, normal); 
         ptr += 50; 
     }
     return triangles.size(); 
@@ -110,13 +87,13 @@ int slice(float layerHeight) {
     }
 
     for (float zp = minZ; zp <= maxZ; zp += layerHeight) {
-        Paths64 layer; 
+        Edges layer; 
         
         for(const auto& tri : triangles) {
-            float zp_prev = zp; 
             if (zp < tri.minZ || zp > tri.maxZ) continue; 
             Vec3 edges[3][2] = {{tri.v1, tri.v2}, {tri.v2, tri.v3}, {tri.v3, tri.v1}}; 
-            Path64 intersections; 
+            Vec3 normal = tri.normal;
+            Point64 intersections[3]; 
             for (auto& edge : edges) {
                 Vec3 v1 = edge[0], v2 = edge[1]; 
                 double x; 
@@ -129,20 +106,18 @@ int slice(float layerHeight) {
                     intersections.push_back(Point64(x * SCALE_FACTOR, round(y * SCALE_FACTOR)));
                 }
             }
-            zp = zp_prev; 
             if (!intersections.empty()) {
                 if(intersections.size() == 3) {
-                    layer.push_back(Path64({intersections[0], intersections[1]}));
-                    layer.push_back(Path64({intersections[0], intersections[2]}));
-                    layer.push_back(Path64({intersections[1], intersections[2]}));
+                    layer.push_back(Edge(intersections[0], intersections[1], normal));
+                    layer.push_back(Edge(intersections[0], intersections[2], normal));
+                    layer.push_back(Edge(intersections[1], intersections[2], normal));
                 }
                 else if(intersections.size() == 2){
-                    layer.push_back(intersections);
+                    layer.push_back(Edge(intersections[0], intersections[1], normal));
                 }                
             }                               
         }
         if (!layer.empty()) {
-            sortLayer(layer);
             sliced.push_back(layer);
         }
     }
