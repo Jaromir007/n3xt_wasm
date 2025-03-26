@@ -15,7 +15,7 @@ struct Vec3 {
     float x, y, z; 
 
     bool operator==(const Vec3& v) const {
-        return fabs(x - v.x) < 1e-4 && fabs(y - v.y) < 1e-4 && fabs(z - v.z) < 1e-4;
+        return x == v.x && y == v.y && z == v.z;
     }
 
     friend ostream& operator<<(ostream& os, const Vec3& v) {
@@ -30,7 +30,7 @@ struct P2 {
     P2(float x, float y) : x(x), y(y) {}
 
     bool operator==(const P2& p) const {
-        return fabs(x - p.x) < 1 && fabs(y - p.y) < 1; 
+        return x == p.x && y == p.y; 
     }
 
     friend ostream& operator<<(ostream& os, const P2& p) {
