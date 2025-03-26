@@ -13,6 +13,34 @@ using namespace Clipper2Lib;
 
 struct Vec3 {
     float x, y, z; 
+
+    bool operator==(const Vec3& v) const {
+        return fabs(x - v.x) < 1e-4 && fabs(y - v.y) < 1e-4 && fabs(z - v.z) < 1e-4;
+    }
+
+    friend ostream& operator<<(ostream& os, const Vec3& v) {
+        os << v.x << ", " << v.y << ", " << v.z;
+        return os;
+    }
+}; 
+
+struct P2 {
+    float x, y; 
+
+    P2(float x, float y) : x(x), y(y) {}
+
+    bool operator==(const P2& p) const {
+        return fabs(x - p.x) < 1 && fabs(y - p.y) < 1; 
+    }
+
+    friend ostream& operator<<(ostream& os, const P2& p) {
+        os << p.x << ", " << p.y;
+        return os;
+    }
+
+    P2 scale(const double& scale_factor) const {
+        return P2(x * scale_factor, y * scale_factor);
+    }
 }; 
 
 struct Triangle {
@@ -27,12 +55,16 @@ struct Triangle {
 }; 
 
 struct Edge {
-    Point64 v1, v2;
+    P2 v1, v2;
     Vec3 normal;
-    Edge(const Point64& v1, const Point64& v2, const Vec3& normal) : v1(v1), v2(v2), normal(normal) {
+    Edge(const P2& v1, const P2& v2, const Vec3& normal) : v1(v1), v2(v2), normal(normal) {
         if (v1.x > v2.x || (v1.x == v2.x && v1.y > v2.y)) {
             swap(this->v1, this->v2);
         }
+    }
+
+    bool operator==(const Edge& e) {
+        return v1 == e.v1 && v2 == e.v2 && normal == e.normal;
     }
 }; 
 
@@ -68,6 +100,27 @@ int parseSTL(const uint8_t* data, int length) {
     return triangles.size(); 
 }
 
+void cleanUpEdges(Edges& edges) {
+    unordered_set<size_t> toRemove;
+    for (size_t i = 0; i < edges.size(); ++i) {
+        for (size_t j = i + 1; j < edges.size(); ++j) {
+            if (edges[i] == edges[j]) {
+                toRemove.insert(i);
+                toRemove.insert(j);
+            }
+        }
+    }
+
+    Edges cleanedEdges;
+    for (size_t i = 0; i < edges.size(); ++i) {
+        if (toRemove.find(i) == toRemove.end()) {
+            cleanedEdges.push_back(edges[i]);
+        }
+    }
+
+    edges = move(cleanedEdges);
+}
+
 int slice(float layerHeight) {
     sliced.clear(); 
 
@@ -89,7 +142,7 @@ int slice(float layerHeight) {
             if (zp < tri.minZ || zp > tri.maxZ) continue; 
             Vec3 edges[3][2] = {{tri.v1, tri.v2}, {tri.v2, tri.v3}, {tri.v3, tri.v1}}; 
             Vec3 normal = tri.normal;
-            Path64 intersections; 
+            vector<P2> intersections; 
             for (auto& edge : edges) {
                 Vec3 v1 = edge[0], v2 = edge[1]; 
                 double x; 
@@ -99,7 +152,7 @@ int slice(float layerHeight) {
                     t = max(0.0f, min(1.0f, t)); 
                     x = v1.x + t * (v2.x - v1.x); 
                     y = v1.y + t * (v2.y - v1.y); 
-                    intersections.push_back(Point64(x * SCALE_FACTOR, round(y * SCALE_FACTOR)));
+                    intersections.push_back(P2(x * SCALE_FACTOR, round(y * SCALE_FACTOR)));
                 }
             }
             if (!intersections.empty()) {
@@ -114,6 +167,7 @@ int slice(float layerHeight) {
             }                               
         }
         if (!layer.empty()) {
+            cleanUpEdges(layer); 
             sliced.push_back(layer);
         }
     }
@@ -158,9 +212,8 @@ int main(int argc, char* argv[]) {
         for(int j = 0; j < layer.size(); j++) {
             auto& edge = layer[j];
             json << "       [" << endl; 
-            json << "           [" << edge.v1 << "], " << endl; 
-            json << "           [" << edge.v2 << "], " << endl; 
-            json << "           [" << edge.normal.x << "," << edge.normal.y << "," << edge.normal.z << "] " << endl;
+            json << "           [" << edge.v1.scale(1.0 / SCALE_FACTOR) << "], " << endl; 
+            json << "           [" << edge.v2.scale(1.0 / SCALE_FACTOR) << "] " << endl; 
             json << endl << "       ]"; 
             if(j < layer.size() - 1) json << "," << endl; 
         }
