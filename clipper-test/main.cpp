@@ -78,7 +78,7 @@ struct Edge {
     }
 
     bool directEqual(const Edge& e) {
-        float error = 1e-2;
+        float error = 1e-4;
         return abs(v1.x - e.v1.x) < error && abs(v1.y - e.v1.y) < error &&
                abs(v2.x - e.v2.x) < error && abs(v2.y - e.v2.y) < error &&
                normal == e.normal;
@@ -90,7 +90,7 @@ typedef vector<Edge> Edges;
 typedef vector<P2> Polygon; 
 
 vector<Triangle> triangles; 
-vector<vector<Polygon>> sliced; 
+vector<Edges> sliced; 
 
 const double SCALE_FACTOR = 10000.0;
 
@@ -122,6 +122,10 @@ void cleanUpEdges(Edges& edges) {
     unordered_set<int> toRemove;
 
     for (int i = 0; i < edges.size(); ++i) {
+        if(edges[i].v1 == edges[i].v2) {
+            toRemove.insert(i);
+            continue; 
+        }
         if (!edges[i].horisontal) continue;
         for (int j = i + 1; j < edges.size(); ++j) {
             if (!edges[j].horisontal) continue;
@@ -141,6 +145,16 @@ void cleanUpEdges(Edges& edges) {
 
     edges = move(cleanedEdges);
 }
+
+void removeDuplicateEdges(Edges& edges) {
+    return; 
+}
+
+void connectEdges(Edges& edges) {
+    return;
+}
+
+
 
 vector<Polygon> formPolygons(Edges& edges) {
     vector<Polygon> polygons; 
@@ -195,7 +209,9 @@ int slice(float layerHeight) {
         }
         if (!layer.empty()) {
             cleanUpEdges(layer); 
-            sliced.emplace_back(formPolygons(layer)); 
+            removeDuplicateEdges(layer);
+            connectEdges(layer);
+            sliced.push_back(layer); 
         }
     }
 
@@ -231,6 +247,23 @@ int main(int argc, char* argv[]) {
     cout << "Total layers: " << sliced.size() << endl; 
 
     ostringstream json; 
+
+        json << "[" << endl;
+
+        for (size_t i = 0; i < sliced.size(); ++i) {
+            json << "   [" << endl;
+            const auto& layer = sliced[i];
+            for (size_t j = 0; j < layer.size(); ++j) {
+                const auto& edge = layer[j];
+                json << "       [" << endl << "        [" << edge.v1.x / SCALE_FACTOR << "," << edge.v1.y / SCALE_FACTOR << "]," << endl << "        [" 
+                     << edge.v2.x / SCALE_FACTOR << "," << edge.v2.y / SCALE_FACTOR << "]" << endl << "       ]";
+                if (j < layer.size() - 1) json << "," << endl;
+            }
+            json << endl << "   ]";
+            if (i < sliced.size() - 1) json << "," << endl;
+        }
+
+        json << "]";
    
     ofstream outFile("out.json"); 
     if(outFile.is_open()) {
