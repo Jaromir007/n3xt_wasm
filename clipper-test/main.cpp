@@ -162,64 +162,42 @@ void cleanUpEdges(Edges& edges) {
 }
 
 vector<Polygon> connectEdges(Edges& layer) {
-    vector<Polygon> polygons;
-    if (layer.empty()) return polygons;
+    if (layer.empty()) return {};
 
-    // Build adjacency list - map each point to its connected points
-    unordered_map<P2, vector<P2>, P2::Hash> graph;
+    unordered_map<P2, vector<P2>, P2::Hash> edgeMap;
+
     for (const auto& edge : layer) {
-        graph[edge.v1].push_back(edge.v2);
-        graph[edge.v2].push_back(edge.v1);
+        edgeMap[edge.v1].push_back(edge.v2);
+        edgeMap[edge.v2].push_back(edge.v1);
     }
 
-    while (!graph.empty()) {
+    vector<Polygon> polygons;
+
+    while (!edgeMap.empty()) {
         Polygon polygon;
-        
-        // Start with any remaining point
-        auto it = graph.begin();
-        P2 current = it->first;
-        P2 next = it->second.back();
-        
-        // Remove this edge
-        graph[current].pop_back();
-        if (graph[current].empty()) graph.erase(current);
-        
-        // Remove reverse edge
-        auto& neighbors = graph[next];
-        neighbors.erase(remove(neighbors.begin(), neighbors.end(), current), neighbors.end());
-        if (neighbors.empty()) graph.erase(next);
-        
-        // Start building polygon
-        polygon.push_back(current);
-        current = next;
-        
-        // Follow the chain
-        while (current != polygon[0]) {
-            polygon.push_back(current);
-            
-            auto& neighbors = graph[current];
-            if (neighbors.empty()) {
-                graph.erase(current);
-                break;
+        auto it = edgeMap.begin();
+        polygon.push_back(it->first);
+        polygon.push_back(it->second.front());
+        edgeMap[it->first].erase(edgeMap[it->first].begin());
+
+        if (edgeMap[it->first].empty()) edgeMap.erase(it->first);
+
+        bool found = true;
+        while (found) {
+            found = false;
+            P2 last = polygon.back();
+
+            if (edgeMap.count(last) && !edgeMap[last].empty()) {
+                P2 next = edgeMap[last].back();
+                edgeMap[last].pop_back();
+                polygon.push_back(next);
+
+                if (edgeMap[last].empty()) edgeMap.erase(last);
+                found = true;
             }
-            
-            next = neighbors.back();
-            neighbors.pop_back();
-            if (neighbors.empty()) graph.erase(current);
-            
-            // Remove reverse edge
-            auto& next_neighbors = graph[next];
-            next_neighbors.erase(remove(next_neighbors.begin(), next_neighbors.end(), current), next_neighbors.end());
-            if (next_neighbors.empty()) graph.erase(next);
-            
-            current = next;
-            
-            // Safety check
-            if (polygon.size() > graph.size() + 10) break;
         }
-        
-        // Only add closed polygons with at least 3 points
-        if (polygon.size() >= 3 && current == polygon[0]) {
+
+        if (polygon.size() > 2 && polygon.front() == polygon.back()) {
             polygons.push_back(polygon);
         }
     }
@@ -280,7 +258,7 @@ int slice(float layerHeight) {
             }                               
         }
         if (!layer.empty()) {
-            cleanUpEdges(layer); 
+            // cleanUpEdges(layer); 
             sliced.emplace_back(connectEdges(layer)); 
         }
     }
