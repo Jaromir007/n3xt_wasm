@@ -83,34 +83,28 @@
         });
 
         function drawPolygons(layers) {
-            layers.forEach((layer, i) => {
-            const zHeight = i * 0.25;
+            let zOffset = 0; 
+            layers.forEach(layer => {
             layer.forEach(polygon => {
-                const geometry = new THREE.BufferGeometry();
-                const vertices = [];
-
-                polygon.forEach(point => {
-                const x = point[0];
-                const y = -point[1]; // Invert Y-axis for Three.js
-                vertices.push(x, y, zHeight);
-                });
-
-                // Close the polygon by connecting the last point to the first
-                if (polygon.length > 1) {
-                const firstPoint = polygon[0];
-                vertices.push(firstPoint[0], -firstPoint[1], zHeight);
+                const shape = new THREE.Shape();
+                polygon.reverse().forEach((point, index) => {
+                const [x, y] = point;
+                const adjustedX = x;
+                const adjustedY = y; 
+                if (index === 0) {
+                    shape.moveTo(adjustedX, adjustedY);
+                } else {
+                    shape.lineTo(adjustedX, adjustedY);
                 }
-
-                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-
-                const material = new THREE.LineBasicMaterial({
-                color: Math.random() * 0xffffff
                 });
-
+                shape.closePath();
+                const geometry = new THREE.BufferGeometry().setFromPoints(shape.getPoints());
+                const material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
                 const line = new THREE.Line(geometry, material);
+                line.position.z = zOffset; 
                 scene.add(line);
-                imported.push(line);
             });
+            zOffset += 0.2; 
             });
         }
 
