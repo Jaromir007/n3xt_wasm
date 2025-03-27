@@ -85,21 +85,31 @@
         function drawPolygons(layers) {
             layers.forEach((layer, i) => {
             const zHeight = i * 0.25;
-            layer.forEach(edge => {
+            layer.forEach(polygon => {
+                const geometry = new THREE.BufferGeometry();
                 const vertices = [];
-                edge.forEach(point => {
-                vertices.push(point[0], zHeight, -point[1]);
+
+                polygon.forEach(point => {
+                const x = point[0];
+                const y = -point[1]; // Invert Y-axis for Three.js
+                vertices.push(x, y, zHeight);
                 });
 
-                const geometry = new THREE.BufferGeometry();
+                // Close the polygon by connecting the last point to the first
+                if (polygon.length > 1) {
+                const firstPoint = polygon[0];
+                vertices.push(firstPoint[0], -firstPoint[1], zHeight);
+                }
+
                 geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
-                const material = new THREE.LineBasicMaterial({ color: Math.random() * 0xffffff });
+                const material = new THREE.LineBasicMaterial({
+                color: Math.random() * 0xffffff
+                });
 
-                const edgeMesh = new THREE.Line(geometry, material);
-
-                scene.add(edgeMesh);
-                imported.push(edgeMesh);
+                const line = new THREE.Line(geometry, material);
+                scene.add(line);
+                imported.push(line);
             });
             });
         }

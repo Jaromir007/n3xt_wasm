@@ -14,6 +14,9 @@ using namespace Clipper2Lib;
 struct Vec3 {
     float x, y, z; 
 
+    Vec3() : x(0), y(0), z(0) {}
+    Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
+
     bool operator==(const Vec3& v) const {
         return x == v.x && y == v.y && z == v.z;
     }
@@ -27,6 +30,7 @@ struct Vec3 {
 struct P2 {
     float x, y; 
 
+    P2() : x(0), y(0) {}
     P2(float x, float y) : x(x), y(y) {}
 
     bool operator==(const P2& p) const {
@@ -102,7 +106,8 @@ typedef vector<Edge> Edges;
 typedef vector<P2> Polygon; 
 
 vector<Triangle> triangles; 
-vector<Edges> sliced; 
+// vector<Edges> sliced; 
+vector<vector<Polygon>> sliced;
 
 const double SCALE_FACTOR = 10000.0;
 
@@ -156,9 +161,73 @@ void cleanUpEdges(Edges& edges) {
     edges = move(cleanedEdges);
 }
 
-void connectEdges(Edges& layer) {
-
+vector<Polygon> connectEdges(Edges& layer) {
+    vector<Polygon> polygons;
+    unordered_multimap<P2, P2, P2::Hash> edgeMap;
+    
+    for (const auto& edge : layer) {
+        edgeMap.insert({edge.v1, edge.v2});
+        edgeMap.insert({edge.v2, edge.v1});
+    }
+    
+    while (!edgeMap.empty()) {
+        Polygon polygon;
+        
+        auto start = edgeMap.begin();
+        P2 current = start->first;
+        P2 next = start->second;
+        
+        polygon.push_back(current);
+        
+        auto range = edgeMap.equal_range(current);
+        for (auto it = range.first; it != range.second; ++it) {
+            if (it->second == next) {
+                edgeMap.erase(it);
+                break;
+            }
+        }
+        
+        range = edgeMap.equal_range(next);
+        for (auto it = range.first; it != range.second; ++it) {
+            if (it->second == current) {
+                edgeMap.erase(it);
+                break;
+            }
+        }
+        
+        current = next;
+        
+        while (current != polygon[0]) {
+            polygon.push_back(current);
+            
+            auto range = edgeMap.equal_range(current);
+            if (range.first == range.second) {
+                break;
+            }
+            
+            next = range.first->second;
+            
+            edgeMap.erase(range.first);
+            
+            auto reverseRange = edgeMap.equal_range(next);
+            for (auto it = reverseRange.first; it != reverseRange.second; ++it) {
+                if (it->second == current) {
+                    edgeMap.erase(it);
+                    break;
+                }
+            }
+            
+            current = next;
+        }
+        
+        if (!polygon.empty()) {
+            polygons.push_back(polygon);
+        }
+    }
+    
+    return polygons;
 }
+
 
 vector<Polygon> formPolygons(Edges& edges) {
     vector<Polygon> polygons; 
@@ -213,7 +282,7 @@ int slice(float layerHeight) {
         }
         if (!layer.empty()) {
             cleanUpEdges(layer); 
-            sliced.push_back(layer); 
+            sliced.emplace_back(connectEdges(layer)); 
         }
     }
 
@@ -250,22 +319,31 @@ int main(int argc, char* argv[]) {
 
     ostringstream json; 
 
-        json << "[" << endl;
+    json << "[" << endl;
 
-        for (size_t i = 0; i < sliced.size(); ++i) {
-            json << "   [" << endl;
-            const auto& layer = sliced[i];
-            for (size_t j = 0; j < layer.size(); ++j) {
-                const auto& edge = layer[j];
-                json << "       [" << endl << "        [" << edge.v1.x / SCALE_FACTOR << "," << edge.v1.y / SCALE_FACTOR << "]," << endl << "        [" 
-                     << edge.v2.x / SCALE_FACTOR << "," << edge.v2.y / SCALE_FACTOR << "]" << endl << "       ]";
-                if (j < layer.size() - 1) json << "," << endl;
+    for (size_t i = 0; i < sliced.size(); ++i) {
+        json << "   [" << endl;
+        auto polygons = sliced[i];
+        
+        for (size_t j = 0; j < polygons.size(); ++j) {
+            const auto& polygon = polygons[j];
+            json << "       [" << endl;
+            
+            for (size_t k = 0; k < polygon.size(); ++k) {
+                const auto& point = polygon[k];
+                json << "        [" << point.x / SCALE_FACTOR << "," << point.y / SCALE_FACTOR << "]";
+                if (k < polygon.size() - 1) json << "," << endl;
             }
-            json << endl << "   ]";
-            if (i < sliced.size() - 1) json << "," << endl;
+            
+            json << endl << "       ]";
+            if (j < polygons.size() - 1) json << "," << endl;
         }
+        
+        json << endl << "   ]";
+        if (i < sliced.size() - 1) json << "," << endl;
+    }
 
-        json << "]";
+    json << "]";
    
     ofstream outFile("out.json"); 
     if(outFile.is_open()) {
