@@ -90,7 +90,7 @@ typedef vector<Edge> Edges;
 typedef vector<P2> Polygon; 
 
 vector<Triangle> triangles; 
-vector<Edges> sliced; 
+vector<vector<Polygon>> sliced; 
 
 const double SCALE_FACTOR = 10000.0;
 
@@ -142,9 +142,9 @@ void cleanUpEdges(Edges& edges) {
     edges = move(cleanedEdges);
 }
 
-void formPolygons(Edges& edges) {
-    Polygons polygons; 
-
+vector<Polygon> formPolygons(Edges& edges) {
+    vector<Polygon> polygons; 
+    
     return polygons; 
 }
 
@@ -195,7 +195,7 @@ int slice(float layerHeight) {
         }
         if (!layer.empty()) {
             cleanUpEdges(layer); 
-            sliced.push_back(layer);
+            sliced.emplace_back(formPolygons(layer)); 
         }
     }
 
@@ -231,25 +231,7 @@ int main(int argc, char* argv[]) {
     cout << "Total layers: " << sliced.size() << endl; 
 
     ostringstream json; 
-    
-    json << "[" << endl; 
-    for(int i = 0; i < sliced.size(); i++) {
-        auto& layer = sliced[i]; 
-        json << "   [" << endl; 
-        for(int j = 0; j < layer.size(); j++) {
-            auto& edge = layer[j];
-            json << "       [" << endl; 
-            json << "           [" << edge.v1.scale(1.0 / SCALE_FACTOR) << "], " << endl; 
-            json << "           [" << edge.v2.scale(1.0 / SCALE_FACTOR) << "] " << endl; 
-            json << endl << "       ]"; 
-            if(j < layer.size() - 1) json << "," << endl; 
-        }
-        json << endl << "   ]"; 
-        if(i < sliced.size() - 1) json << "," << endl; 
-    }
-    json << endl << "]"; 
    
-
     ofstream outFile("out.json"); 
     if(outFile.is_open()) {
         outFile << json.str(); 
