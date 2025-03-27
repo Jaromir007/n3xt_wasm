@@ -41,6 +41,14 @@ struct P2 {
     P2 scale(const double& scale_factor) const {
         return P2(x * scale_factor, y * scale_factor);
     }
+
+    struct Hash {
+        size_t operator()(const P2& p) const {
+            size_t h1 = hash<float>()(p.x);
+            size_t h2 = hash<float>()(p.y);
+            return h1 ^ (h2 << 1);
+        }
+    };
 }; 
 
 struct Triangle {
@@ -57,19 +65,29 @@ struct Triangle {
 struct Edge {
     P2 v1, v2;
     Vec3 normal;
+    bool horisontal; 
     Edge(const P2& v1, const P2& v2, const Vec3& normal) : v1(v1), v2(v2), normal(normal) {
         if (v1.x > v2.x || (v1.x == v2.x && v1.y > v2.y)) {
             swap(this->v1, this->v2);
         }
+        if(abs(normal.x) == 0 && abs(normal.y) == 0) horisontal = true; 
     }
 
     bool operator==(const Edge& e) {
-        return v1 == e.v1 && v2 == e.v2 && normal == e.normal;
+        return v1 == e.v1 && v2 == e.v2;
+    }
+
+    bool directEqual(const Edge& e) {
+        float error = 1e-2;
+        return abs(v1.x - e.v1.x) < error && abs(v1.y - e.v1.y) < error &&
+               abs(v2.x - e.v2.x) < error && abs(v2.y - e.v2.y) < error &&
+               normal == e.normal;
     }
 }; 
 
 
 typedef vector<Edge> Edges;
+typedef vector<P2> Polygon; 
 
 vector<Triangle> triangles; 
 vector<Edges> sliced; 
@@ -101,10 +119,13 @@ int parseSTL(const uint8_t* data, int length) {
 }
 
 void cleanUpEdges(Edges& edges) {
-    unordered_set<size_t> toRemove;
-    for (size_t i = 0; i < edges.size(); ++i) {
-        for (size_t j = i + 1; j < edges.size(); ++j) {
-            if (edges[i] == edges[j]) {
+    unordered_set<int> toRemove;
+
+    for (int i = 0; i < edges.size(); ++i) {
+        if (!edges[i].horisontal) continue;
+        for (int j = i + 1; j < edges.size(); ++j) {
+            if (!edges[j].horisontal) continue;
+            if (edges[i].directEqual(edges[j])) {
                 toRemove.insert(i);
                 toRemove.insert(j);
             }
@@ -112,13 +133,19 @@ void cleanUpEdges(Edges& edges) {
     }
 
     Edges cleanedEdges;
-    for (size_t i = 0; i < edges.size(); ++i) {
+    for (int i = 0; i < edges.size(); ++i) {
         if (toRemove.find(i) == toRemove.end()) {
             cleanedEdges.push_back(edges[i]);
         }
     }
 
     edges = move(cleanedEdges);
+}
+
+void formPolygons(Edges& edges) {
+    Polygons polygons; 
+
+    return polygons; 
 }
 
 int slice(float layerHeight) {
