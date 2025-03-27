@@ -33,6 +33,10 @@ struct P2 {
         return x == p.x && y == p.y; 
     }
 
+    bool operator!=(const P2& p) const {
+        return !(*this == p);
+    }
+
     friend ostream& operator<<(ostream& os, const P2& p) {
         os << p.x << ", " << p.y;
         return os;
@@ -78,7 +82,7 @@ struct Edge {
     }
 
     bool directEqual(const Edge& e) {
-        float error = 1e-4;
+        float error = 1e-2;
         return abs(v1.x - e.v1.x) < error && abs(v1.y - e.v1.y) < error &&
                abs(v2.x - e.v2.x) < error && abs(v2.y - e.v2.y) < error &&
                normal == e.normal;
@@ -126,9 +130,7 @@ void cleanUpEdges(Edges& edges) {
             toRemove.insert(i);
             continue; 
         }
-        if (!edges[i].horisontal) continue;
         for (int j = i + 1; j < edges.size(); ++j) {
-            if (!edges[j].horisontal) continue;
             if (edges[i].directEqual(edges[j])) {
                 toRemove.insert(i);
                 toRemove.insert(j);
@@ -145,16 +147,6 @@ void cleanUpEdges(Edges& edges) {
 
     edges = move(cleanedEdges);
 }
-
-void removeDuplicateEdges(Edges& edges) {
-    return; 
-}
-
-void connectEdges(Edges& edges) {
-    return;
-}
-
-
 
 vector<Polygon> formPolygons(Edges& edges) {
     vector<Polygon> polygons; 
@@ -209,8 +201,6 @@ int slice(float layerHeight) {
         }
         if (!layer.empty()) {
             cleanUpEdges(layer); 
-            removeDuplicateEdges(layer);
-            connectEdges(layer);
             sliced.push_back(layer); 
         }
     }
