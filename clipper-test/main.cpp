@@ -70,11 +70,9 @@ struct Edge {
     P2 v1, v2;
     Vec3 normal;
     bool horisontal; 
-    Edge(const P2& v1, const P2& v2, const Vec3& normal) : v1(v1), v2(v2), normal(normal) {
-        if (v1.x > v2.x || (v1.x == v2.x && v1.y > v2.y)) {
-            swap(this->v1, this->v2);
-        }
-        if(abs(normal.x) == 0 && abs(normal.y) == 0) horisontal = true; 
+    Edge(const P2& v1, const P2& v2, const Vec3& normal, bool sorted = false) : v1(v1), v2(v2), normal(normal) {
+        if (abs(normal.x) == 0 && abs(normal.y) == 0) horisontal = true; 
+        if (sorted) sortVertices();
     }
 
     bool operator==(const Edge& e) {
@@ -86,6 +84,16 @@ struct Edge {
         return abs(v1.x - e.v1.x) < error && abs(v1.y - e.v1.y) < error &&
                abs(v2.x - e.v2.x) < error && abs(v2.y - e.v2.y) < error &&
                normal == e.normal;
+    }
+
+    void sortVertices() {
+        if (v1.x > v2.x || (v1.x == v2.x && v1.y > v2.y)) {
+            swap(this->v1, this->v2);
+        }
+    }
+
+    void swapVertices() {
+        swap(this->v1, this->v2);
     }
 }; 
 
@@ -148,6 +156,10 @@ void cleanUpEdges(Edges& edges) {
     edges = move(cleanedEdges);
 }
 
+void connectEdges(Edges& layer) {
+
+}
+
 vector<Polygon> formPolygons(Edges& edges) {
     vector<Polygon> polygons; 
     
@@ -190,12 +202,12 @@ int slice(float layerHeight) {
             }
             if (!intersections.empty()) {
                 if(intersections.size() == 3) {
-                    layer.push_back(Edge(intersections[0], intersections[1], normal));
-                    layer.push_back(Edge(intersections[0], intersections[2], normal));
-                    layer.push_back(Edge(intersections[1], intersections[2], normal));
+                    layer.push_back(Edge(intersections[0], intersections[1], normal, true));
+                    layer.push_back(Edge(intersections[0], intersections[2], normal, true));
+                    layer.push_back(Edge(intersections[1], intersections[2], normal, true));
                 }
                 else if(intersections.size() == 2){
-                    layer.push_back(Edge(intersections[0], intersections[1], normal));
+                    layer.push_back(Edge(intersections[0], intersections[1], normal, true));
                 }                
             }                               
         }
