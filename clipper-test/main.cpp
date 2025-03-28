@@ -353,7 +353,7 @@ vector<Polygon> offsetPolygons(const vector<Polygon>& polygons, double delta) {
         subject.push_back(path);
     }
     
-    subject = SimplifyPaths(subject, 0.1 * SCALE_FACTOR);
+    subject = SimplifyPaths(subject, 0.01 * SCALE_FACTOR);
     
     ClipperOffset co;
     co.AddPaths(subject, JoinType::Round, EndType::Polygon);
@@ -417,9 +417,6 @@ void processLayers() {
     }
 }
 
-#include <sstream>
-#include <iomanip>
-
 ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHeight) {
     ostringstream gcode;
     
@@ -428,7 +425,7 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
     const float extrusionMultiplier = 0.9f;
     const float firstLayerHeight = 0.2f;
     const float bedTemp = 60.0f;
-    const float nozzleTemp = 210.0f;
+    const float nozzleTemp = 215.0f;
     const float printSpeed = 60.0f;
     const float travelSpeed = 120.0f;
     const float firstLayerSpeed = 20.0f;
@@ -534,7 +531,7 @@ int main(int argc, char* argv[]) {
     file.close(); 
 
     int trianglesSize = parseSTL(buffer.data(), buffer.size()); 
-    slice(layerHeight); 
+    slice(layerHeight);
     processLayers();
 
     cout << "slicing performed successfully, sliced " << trianglesSize << " triangles in total." << endl; 
