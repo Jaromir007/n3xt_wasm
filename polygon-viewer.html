@@ -100,6 +100,7 @@
                 shape.closePath();
                 const geometry = new THREE.BufferGeometry().setFromPoints(shape.getPoints());
                 const material = new THREE.LineBasicMaterial({ color: Math.random() * 0xffffff });
+                // const material = new THREE.LineBasicMaterial({ color: 0xffffff });
                 const line = new THREE.Line(geometry, material);
                 line.position.z = zOffset; 
                 scene.add(line);

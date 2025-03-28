@@ -84,9 +84,9 @@ struct Edge {
     }
 
     bool directEqual(const Edge& e) {
-        float error = 1e-2;
-        return abs(v1.x - e.v1.x) < error && abs(v1.y - e.v1.y) < error &&
-               abs(v2.x - e.v2.x) < error && abs(v2.y - e.v2.y) < error &&
+        float eps = 1;
+        return abs(v1.x - e.v1.x) < eps && abs(v1.y - e.v1.y) < eps &&
+               abs(v2.x - e.v2.x) < eps && abs(v2.y - e.v2.y) < eps &&
                normal == e.normal;
     }
 
@@ -106,10 +106,11 @@ typedef vector<Edge> Edges;
 typedef vector<P2> Polygon; 
 
 vector<Triangle> triangles; 
-// vector<Edges> sliced; 
 vector<vector<Polygon>> sliced;
 
 const double SCALE_FACTOR = 10000.0;
+const double WALL_THICKNESS = 0.8;
+const int WALL_COUNT = 3;
 
 int parseSTL(const uint8_t* data, int length) {
     if (length < 84) return 0; 
@@ -166,7 +167,7 @@ vector<Polygon> connectEdges(Edges& layer) {
     if (layer.empty()) return polygons;
 
     auto pointsEqual = [](const P2& a, const P2& b) {
-        const float eps = 1e-6 * SCALE_FACTOR; 
+        const float eps = 1; 
         return abs(a.x - b.x) < eps && abs(a.y - b.y) < eps;
     };
 
@@ -268,6 +269,91 @@ int slice(float layerHeight) {
     return 0; 
 }
 
+PathsD polygonsToPaths(const vector<Polygon>& polygons) {
+    PathsD paths;
+    for (const auto& poly : polygons) {
+        PathD path;
+        for (const auto& p : poly) {
+            path.emplace_back(p.x, p.y);
+        }
+        paths.push_back(path);
+    }
+    return paths;
+}
+
+vector<Polygon> pathsToPolygons(const PathsD& paths) {
+    vector<Polygon> polygons;
+    for (const auto& path : paths) {
+        Polygon poly;
+        for (const auto& p : path) {
+            poly.emplace_back(p.x, p.y);
+        }
+        polygons.push_back(poly);
+    }
+    return polygons;
+}
+
+vector<Polygon> offsetPolygons(const vector<Polygon>& polygons, double delta) {
+    Paths64 subject;
+    for (const auto& poly : polygons) {
+        Path64 path;
+        for (const auto& p : poly) {
+            path.emplace_back(
+                static_cast<int64_t>(p.x),
+                static_cast<int64_t>(p.y)
+            );
+        }
+        subject.push_back(path);
+    }
+    
+    subject = SimplifyPaths(subject, 0.1 * SCALE_FACTOR);
+    
+    ClipperOffset co;
+    co.AddPaths(subject, JoinType::Round, EndType::Polygon);
+    Paths64 solution;
+    co.Execute(-delta * SCALE_FACTOR, solution); 
+    
+    vector<Polygon> result;
+    for (const auto& path : solution) {
+        Polygon poly;
+        for (const auto& p : path) {
+            poly.emplace_back(
+                static_cast<double>(p.x),
+                static_cast<double>(p.y)
+            );
+        }
+        result.push_back(poly);
+    }
+    
+    return result;
+}
+
+vector<vector<Polygon>> createWalls(const vector<Polygon>& polygons) {
+    vector<vector<Polygon>> walls;
+    vector<Polygon> current = polygons;
+    
+    for (int i = 0; i < WALL_COUNT; ++i) {
+        if (current.empty()) break;
+        
+        walls.push_back(current);
+        current = offsetPolygons(current, WALL_THICKNESS);
+    }
+    
+    return walls;
+}
+
+
+void processLayers() {
+    for (auto& layer : sliced) {
+        vector<vector<Polygon>> walls = createWalls(layer);
+        
+        layer.clear();
+        for (const auto& wall : walls) {
+            layer.insert(layer.end(), wall.begin(), wall.end());
+        }
+    }
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         cout << "[main] No arguments provided!"; 
@@ -292,6 +378,7 @@ int main(int argc, char* argv[]) {
 
     int trianglesSize = parseSTL(buffer.data(), buffer.size()); 
     slice(layerHeight); 
+    processLayers();
 
     cout << "slicing performed successfully, sliced " << trianglesSize << " triangles in total." << endl; 
     cout << "Total layers: " << sliced.size() << endl; 
