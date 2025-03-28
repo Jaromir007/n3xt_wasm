@@ -90,11 +90,11 @@
                 polygon.reverse().forEach((point, index) => {
                 const [x, y] = point;
                 const adjustedX = x;
-                const adjustedY = y; 
+                const adjustedY = -y; 
                 if (index === 0) {
-                    shape.moveTo(adjustedX, adjustedY);
+                    shape.moveTo(adjustedY, adjustedX);
                 } else {
-                    shape.lineTo(adjustedX, adjustedY);
+                    shape.lineTo(adjustedY, adjustedX);
                 }
                 });
                 shape.closePath();
