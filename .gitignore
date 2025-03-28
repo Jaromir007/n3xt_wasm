@@ -49,7 +49,7 @@ bower_components/
 Thumbs.db
 
 # Slicer
-*.gcode
+# *.gcode
 
 # venv
 venv/
