@@ -166,26 +166,18 @@ vector<Polygon> connectEdges(Edges& layer) {
     if (layer.empty()) return polygons;
 
     auto pointsEqual = [](const P2& a, const P2& b) {
-        const float eps = 1e-6 * SCALE_FACTOR;
+        const float eps = 1e-6 * SCALE_FACTOR; 
         return abs(a.x - b.x) < eps && abs(a.y - b.y) < eps;
     };
 
-    vector<bool> used(layer.size(), false);
-    unordered_map<P2, vector<size_t>, P2::Hash> edgeStartMap;
-    unordered_map<P2, vector<size_t>, P2::Hash> edgeEndMap;
+    Edges remainingEdges = layer;
 
-    for (size_t i = 0; i < layer.size(); ++i) {
-        edgeStartMap[layer[i].v1].push_back(i);
-        edgeEndMap[layer[i].v2].push_back(i);
-    }
-
-    for (size_t i = 0; i < layer.size(); ++i) {
-        if (used[i]) continue;
-
+    while (!remainingEdges.empty()) {
         Polygon polygon;
-        Edge currentEdge = layer[i];
-        used[i] = true;
-
+        
+        Edge currentEdge = remainingEdges.back();
+        remainingEdges.pop_back();
+        
         polygon.push_back(currentEdge.v1);
         P2 currentPoint = currentEdge.v2;
         polygon.push_back(currentPoint);
@@ -193,27 +185,25 @@ vector<Polygon> connectEdges(Edges& layer) {
         bool foundNext = true;
         while (foundNext && !pointsEqual(currentPoint, polygon[0])) {
             foundNext = false;
-
-            auto tryConnect = [&](const vector<size_t>& edgeIndices) {
-                for (size_t idx : edgeIndices) {
-                    if (!used[idx]) {
-                        currentEdge = layer[idx];
-                        used[idx] = true;
-                        if (pointsEqual(currentEdge.v1, currentPoint)) {
-                            currentPoint = currentEdge.v2;
-                        } else {
-                            currentPoint = currentEdge.v1;
-                        }
-                        polygon.push_back(currentPoint);
-                        foundNext = true;
-                        return true;
-                    }
+            
+            for (auto it = remainingEdges.begin(); it != remainingEdges.end(); ++it) {
+                if (pointsEqual(it->v1, currentPoint)) {
+                    currentEdge = *it;
+                    remainingEdges.erase(it);
+                    currentPoint = currentEdge.v2;
+                    polygon.push_back(currentPoint);
+                    foundNext = true;
+                    break;
                 }
-                return false;
-            };
-
-            if (edgeStartMap.count(currentPoint) && tryConnect(edgeStartMap[currentPoint])) continue;
-            if (edgeEndMap.count(currentPoint) && tryConnect(edgeEndMap[currentPoint])) continue;
+                else if (pointsEqual(it->v2, currentPoint)) {
+                    currentEdge = *it;
+                    remainingEdges.erase(it);
+                    currentPoint = currentEdge.v1;
+                    polygon.push_back(currentPoint);
+                    foundNext = true;
+                    break;
+                }
+            }
         }
 
         if (polygon.size() >= 3 && pointsEqual(polygon.back(), polygon[0])) {
