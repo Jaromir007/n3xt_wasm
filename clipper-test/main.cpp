@@ -429,6 +429,7 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
     const float printSpeed = 60.0f;
     const float travelSpeed = 120.0f;
     const float firstLayerSpeed = 20.0f;
+    const int fanSpeed = 255;
     
     const float extrusionWidth = nozzleDiameter * 1.2f;
     const float layerArea = extrusionWidth * layerHeight;
@@ -451,7 +452,11 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
     
     gcode << "G28 ; Home all axes\n";
     gcode << "G1 Z" << firstLayerHeight << " F" << firstLayerSpeed*60 << "\n";
-    gcode << "G92 E0 ; Reset extruder position\n";
+    
+    gcode << "G1 X25 Y5 F" << travelSpeed*60 << " ; move to prime start\n";
+    gcode << "G92 E0 ; reset extruder\n";
+    gcode << "G1 X250 Y5 E10 F" << firstLayerSpeed*60 << " ; print prime line\n";
+    gcode << "G92 E0 ; reset extruder\n";
     
     float currentZ = firstLayerHeight;
     bool firstLayer = true;
@@ -461,6 +466,7 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
         
         gcode << "\n; LAYER:" << layerIdx << "\n";
         gcode << "G1 Z" << currentZ << " F" << printSpeed*60 << "\n";
+        gcode << "M106 S" << (firstLayer ? 0 : fanSpeed) << " ; fan\n";
         
         for (const auto& polygon : layer) {
             if (polygon.size() < 3) continue;
