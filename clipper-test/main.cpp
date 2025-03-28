@@ -458,33 +458,36 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
     gcode << "; Filament diameter: " << filamentDiameter << "\n";
     gcode << "; Extrusion multiplier: " << extrusionMultiplier << "\n\n";
     
-    gcode << "M201 X1000 Y1000 Z200 E5000 ; sets maximum accelerations, mm/sec^2\n";
+    gcode << "M73 P0 R128\n";
+    gcode << "M73 Q0 S129\n";
+    gcode << "M201 X1000 Y1000 Z1000 E5000 ; sets maximum accelerations, mm/sec^2\n";
     gcode << "M203 X200 Y200 Z12 E120 ; sets maximum feedrates, mm/sec\n";
     gcode << "M204 P1250 R1250 T1250 ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2\n";
-    gcode << "M205 X8.00 Y8.00 Z0.40 E4.50 ; sets the jerk limits, mm/sec\n";
+    gcode << "M205 X8.00 Y8.00 Z0.40 E2.50 ; sets the jerk limits, mm/sec\n";
     gcode << "M205 S0 T0 ; sets the minimum extruding and travel feed rate, mm/sec\n";
+    gcode << "M107 ; disable fan\n";
     gcode << "M862.1 P" << nozzleDiameter << " ; nozzle diameter check\n";
     gcode << "M115 U3.8.1 ; tell printer latest fw version\n";
     
-    gcode << "G21 ; Set units to millimeters\n";
-    gcode << "G90 ; Use absolute positioning\n";
-    gcode << "M83 ; Use relative distances for extrusion\n";
-    
-    gcode << "M104 S" << nozzleTemp << " ; Set nozzle temperature\n";
-    gcode << "M140 S" << bedTemp << " ; Set bed temperature\n";
-    gcode << "M190 S" << bedTemp << " ; Wait for bed temperature\n";
-    gcode << "M109 S" << nozzleTemp << " ; Wait for nozzle temperature\n";
-    gcode << "M221 S" << (extrusionMultiplier * 100) << " ; set flow multiplier\n\n";
-    
-    gcode << "G28 ; Home all axes\n";
-    gcode << "G80 ; Mesh bed leveling (if supported)\n";
-    gcode << "G1 Z" << firstLayerHeight << " F" << firstLayerSpeed*60 << "\n";
-    
-    gcode << "G1 Y-3.0 F" << travelSpeed*60 << " ; go outside print area\n";
-    gcode << "G92 E0 ; reset extruder\n";
-    gcode << "G1 X60.0 E9.0 F" << firstLayerSpeed*60 << " ; intro line\n";
-    gcode << "G1 X100.0 E12.5 F" << firstLayerSpeed*60 << " ; intro line\n";
-    gcode << "G92 E0 ; reset extruder\n";
+    gcode << "G90 ; use absolute coordinates\n";
+    gcode << "M83 ; extruder relative mode\n";
+    gcode << "M104 S" << nozzleTemp << " ; set extruder temp\n";
+    gcode << "M140 S" << bedTemp << " ; set bed temp\n";
+    gcode << "M190 S" << bedTemp << " ; wait for bed temp\n";
+    gcode << "M109 S" << nozzleTemp << " ; wait for extruder temp\n";
+    gcode << "G28 W ; home all without mesh bed level\n";
+    gcode << "G80 ; mesh bed leveling\n";
+    gcode << "G1 Y-3.0 F" << travelSpeed * 60 << " ; go outside print area\n";
+    gcode << "G92 E0.0\n";
+    gcode << "G1 X60.0 E9.0 F" << firstLayerSpeed * 60 << " ; intro line\n";
+    gcode << "M73 Q0 S129\n";
+    gcode << "M73 P0 R128\n";
+    gcode << "G1 X100.0 E12.5 F" << firstLayerSpeed * 60 << " ; intro line\n";
+    gcode << "G92 E0.0\n";
+    gcode << "M221 S" << (extrusionMultiplier * 100) << " ; set flow multiplier\n";
+    gcode << "G21 ; set units to millimeters\n";
+    gcode << "G90 ; use absolute coordinates\n";
+    gcode << "M83 ; use relative distances for extrusion\n";
     
     float currentZ = firstLayerHeight;
     bool firstLayer = true;
@@ -558,12 +561,14 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
     gcode << "G4 ; wait\n";
     gcode << "M221 S100 ; reset flow\n";
     gcode << "M900 K0 ; reset LA\n";
-    gcode << "G1 Z" << currentZ + 5 << " F" << printSpeed*60 << " ; lift Z\n";
-    gcode << "G1 X0 Y200 F3000 ; present print\n";
     gcode << "M104 S0 ; turn off temperature\n";
     gcode << "M140 S0 ; turn off heatbed\n";
     gcode << "M107 ; turn off fan\n";
+    gcode << "G1 Z" << currentZ + 5 << " F" << printSpeed*60 << " ; lift Z\n";
+    gcode << "G1 X0 Y200 F3000 ; home X axis\n";
     gcode << "M84 ; disable motors\n";
+    gcode << "M73 P100 R0\n";
+    gcode << "M73 Q100 S0\n";
     
     return gcode;
 }
