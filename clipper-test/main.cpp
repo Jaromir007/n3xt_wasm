@@ -429,7 +429,6 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
     const float printSpeed = 60.0f;
     const float travelSpeed = 120.0f;
     const float firstLayerSpeed = 20.0f;
-    const int fanSpeed = 255;
     
     const float externalPerimWidth = 0.45f;
     const float perimWidth = 0.45f;
@@ -437,11 +436,6 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
     const float solidInfillWidth = 0.45f;
     const float topInfillWidth = 0.40f;
     const float firstLayerWidth = 0.42f;
-
-    const float retractDistance = 1.0f;    
-    const float retractSpeed = 40.0f;      
-    const float deretractSpeed = 30.0f; 
-    const float minimumTravelDistance = 5.0f; 
     
     const float extrusionWidth = (layerHeight == firstLayerHeight) ? firstLayerWidth : perimWidth;
     const float layerArea = extrusionWidth * layerHeight;
@@ -501,9 +495,9 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
         if (firstLayer) {
             gcode << "M107 ; fan off for first layer\n";
         } else if (layerIdx == 1) {
-            gcode << "M106 S" << (fanSpeed * 50 / 100) << " ; fan 50% for second layer\n";
+            gcode << "M106 S" << 50 << " ; fan 50% for second layer\n";
         } else if (layerIdx == 2) {
-            gcode << "M106 S" << fanSpeed << " ; full fan from third layer\n";
+            gcode << "M106 S" << 100 << " ; full fan from third layer\n";
         }
         
         float lastX = 0, lastY = 0;
@@ -514,25 +508,10 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
             
             float travelX = polygon[0].x/SCALE_FACTOR;
             float travelY = polygon[0].y/SCALE_FACTOR;
-            float travelDistance = 0;
-            
-            if (!firstPointInLayer) {
-                float dx = travelX - lastX;
-                float dy = travelY - lastY;
-                travelDistance = sqrt(dx*dx + dy*dy);
-            }
-            
-            if (!firstLayer && !firstPointInLayer && travelDistance > minimumTravelDistance) {
-                gcode << "G1 E-" << retractDistance << " F" << retractSpeed << " ; retract\n";
-            }
             
             gcode << "G0 X" << travelX 
                   << " Y" << travelY 
                   << " F" << travelSpeed*60 << "\n";
-            
-            if (!firstLayer && !firstPointInLayer && travelDistance > minimumTravelDistance) {
-                gcode << "G1 E" << retractDistance << " F" << deretractSpeed << " ; deretract\n";
-            }
             
             gcode << "G92 E0 ; reset extruder\n";
             gcode << "G1 F" << (firstLayer ? firstLayerSpeed*60 : printSpeed*60) << "\n";
