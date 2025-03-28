@@ -75,7 +75,7 @@ struct Edge {
     Vec3 normal;
     bool horisontal; 
     Edge(const P2& v1, const P2& v2, const Vec3& normal, bool sorted = false) : v1(v1), v2(v2), normal(normal) {
-        if (abs(normal.x) == 0 && abs(normal.y) == 0) horisontal = true; 
+        if (normal.x == 0 && normal.y == 0) horisontal = true; 
         if (sorted) sortVertices();
     }
 
@@ -162,54 +162,62 @@ void cleanUpEdges(Edges& edges) {
 }
 
 vector<Polygon> connectEdges(Edges& layer) {
-    if (layer.empty()) return {};
-
-    unordered_map<P2, vector<P2>, P2::Hash> edgeMap;
-
-    for (const auto& edge : layer) {
-        edgeMap[edge.v1].push_back(edge.v2);
-        edgeMap[edge.v2].push_back(edge.v1);
-    }
-
     vector<Polygon> polygons;
+    if (layer.empty()) return polygons;
 
-    while (!edgeMap.empty()) {
+    // Helper function to compare points with tolerance
+    auto pointsEqual = [](const P2& a, const P2& b) {
+        const float eps = 1e-4f * SCALE_FACTOR; // Adjusted for scaled coordinates
+        return abs(a.x - b.x) < eps && abs(a.y - b.y) < eps;
+    };
+
+    // Make a copy of edges we can modify
+    Edges remainingEdges = layer;
+
+    while (!remainingEdges.empty()) {
         Polygon polygon;
-        auto it = edgeMap.begin();
-        polygon.push_back(it->first);
-        polygon.push_back(it->second.front());
-        edgeMap[it->first].erase(edgeMap[it->first].begin());
+        
+        // Start with the first remaining edge
+        Edge currentEdge = remainingEdges.back();
+        remainingEdges.pop_back();
+        
+        polygon.push_back(currentEdge.v1);
+        P2 currentPoint = currentEdge.v2;
+        polygon.push_back(currentPoint);
 
-        if (edgeMap[it->first].empty()) edgeMap.erase(it->first);
-
-        bool found = true;
-        while (found) {
-            found = false;
-            P2 last = polygon.back();
-
-            if (edgeMap.count(last) && !edgeMap[last].empty()) {
-                P2 next = edgeMap[last].back();
-                edgeMap[last].pop_back();
-                polygon.push_back(next);
-
-                if (edgeMap[last].empty()) edgeMap.erase(last);
-                found = true;
+        bool foundNext = true;
+        while (foundNext && !pointsEqual(currentPoint, polygon[0])) {
+            foundNext = false;
+            
+            // Search for an edge that starts with currentPoint
+            for (auto it = remainingEdges.begin(); it != remainingEdges.end(); ++it) {
+                if (pointsEqual(it->v1, currentPoint)) {
+                    currentEdge = *it;
+                    remainingEdges.erase(it);
+                    currentPoint = currentEdge.v2;
+                    polygon.push_back(currentPoint);
+                    foundNext = true;
+                    break;
+                }
+                // Check for reverse edge
+                else if (pointsEqual(it->v2, currentPoint)) {
+                    currentEdge = *it;
+                    remainingEdges.erase(it);
+                    currentPoint = currentEdge.v1;
+                    polygon.push_back(currentPoint);
+                    foundNext = true;
+                    break;
+                }
             }
         }
 
-        if (polygon.size() > 2 && polygon.front() == polygon.back()) {
+        // Only add the polygon if it's closed and has at least 3 points
+        if (polygon.size() >= 3 && pointsEqual(polygon.back(), polygon[0])) {
             polygons.push_back(polygon);
         }
     }
 
     return polygons;
-}
-
-
-vector<Polygon> formPolygons(Edges& edges) {
-    vector<Polygon> polygons; 
-    
-    return polygons; 
 }
 
 int slice(float layerHeight) {
@@ -258,7 +266,7 @@ int slice(float layerHeight) {
             }                               
         }
         if (!layer.empty()) {
-            // cleanUpEdges(layer); 
+            cleanUpEdges(layer); 
             sliced.emplace_back(connectEdges(layer)); 
         }
     }
