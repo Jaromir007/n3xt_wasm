@@ -163,6 +163,52 @@ void cleanUpEdges(Edges& edges) {
     edges = move(cleanedEdges);
 }
 
+Polygon simplifyPolygon(Polygon& polygon) {
+    if (polygon.size() <= 3) return polygon;
+
+    const float eps = 0.1f; 
+    const float angleEps = 1.0f; 
+
+    Polygon result;
+    result.push_back(polygon[0]);
+
+    for (size_t i = 1; i < polygon.size() - 1; i++) {
+        const P2& prev = result.back();
+        const P2& curr = polygon[i];
+        const P2& next = polygon[i+1];
+
+        float v1x = curr.x - prev.x;
+        float v1y = curr.y - prev.y;
+        float v2x = next.x - curr.x;
+        float v2y = next.y - curr.y;
+
+        float cross = v1x * v2y - v1y * v2x;
+        float dot = v1x * v2x + v1y * v2y;
+        float angle = atan2(fabs(cross), dot) * 180.0f / M_PI;
+
+        if (fabs(angle) > angleEps || 
+            fabs(cross) > eps) {
+            result.push_back(curr);
+        }
+    }
+
+    result.push_back(polygon.back());
+
+    Polygon simplified;
+    simplified.push_back(result[0]);
+    for (size_t i = 1; i < result.size(); i++) {
+        float dx = result[i].x - simplified.back().x;
+        float dy = result[i].y - simplified.back().y;
+        if (dx*dx + dy*dy > eps*eps) {
+            simplified.push_back(result[i]);
+        }
+    }
+
+    if (simplified.size() < 3) return polygon;
+
+    return simplified;
+}
+
 vector<Polygon> connectEdges(Edges& layer) {
     vector<Polygon> polygons;
     if (layer.empty()) return polygons;
@@ -209,7 +255,7 @@ vector<Polygon> connectEdges(Edges& layer) {
         }
 
         if (polygon.size() >= 3 && pointsEqual(polygon.back(), polygon[0])) {
-            polygons.push_back(polygon);
+            polygons.push_back(simplifyPolygon(polygon));
         }
     }
 
