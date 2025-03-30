@@ -1,91 +1,79 @@
-let slicerModule = null;
-let stlData = null;
+import slicerModule from './assets/js/slicer.js';
 
-// Initialize the WASM module
-async function initSlicer() {
-    try {
-        slicerModule = await import('./assets/js/slicer.js');
-        console.log("Slicer WASM module loaded");
-        document.getElementById('sliceButton').disabled = false;
-    } catch (error) {
-        console.error("Failed to load slicer module:", error);
-        alert("Failed to load slicer. Please try again.");
-    }
-}
+let slicer;
+let stlData = null;
+let gcode = null;
+
+// Initialize the slicer
+slicerModule().then((module) => {
+    slicer = module;
+    console.log("WASM loaded");
+    document.getElementById('status').textContent = "Ready to load STL";
+    document.getElementById('sliceBtn').disabled = false;
+}).catch((err) => {
+    console.error("Failed to load WASM:", err);
+    document.getElementById('status').textContent = "Failed to load slicer";
+});
 
 // Handle STL file upload
-async function handleSTLUpload(event) {
-    const file = event.target.files[0];
+document.getElementById('stlFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = async function(e) {
-        const arrayBuffer = e.target.result;
-        stlData = new Uint8Array(arrayBuffer);
-        document.getElementById('sliceButton').disabled = false;
-        console.log("STL file loaded:", file.name);
+    reader.onload = (e) => {
+        stlData = new Uint8Array(e.target.result);
+        document.getElementById('status').textContent = `Loaded: ${file.name}`;
     };
     reader.readAsArrayBuffer(file);
-}
+});
 
-// Slice the loaded STL file
-async function sliceModel() {
-    if (!slicerModule || !stlData) {
+// Slice button handler
+document.getElementById('sliceBtn').addEventListener('click', () => {
+    if (!slicer || !stlData) {
         alert("Please load an STL file first");
         return;
     }
 
     try {
-        // Allocate memory for STL data
-        const stlDataPtr = slicerModule._malloc(stlData.length);
-        slicerModule.HEAPU8.set(stlData, stlDataPtr);
+        document.getElementById('status').textContent = "Slicing...";
+        
+        // Allocate and copy STL data
+        const stlPtr = slicer._malloc(stlData.length);
+        slicer.HEAPU8.set(stlData, stlPtr);
 
-        // Parse the STL
-        const triangleCount = slicerModule._parseSTL(stlDataPtr, stlData.length);
-        console.log(`Parsed STL with ${triangleCount} triangles`);
-
-        // Free the memory
-        slicerModule._free(stlDataPtr);
-
+        // Parse STL
+        const triangleCount = slicer._parseSTL(stlPtr, stlData.length);
+        slicer._free(stlPtr);
+        
         if (triangleCount <= 0) {
-            alert("Failed to parse STL file");
-            return;
+            throw new Error("No triangles found in STL");
         }
 
-        // Slice with default layer height (0.2mm)
-        const layerHeight = 0.2;
-        const gcode = slicerModule.getGcode(layerHeight);
+        // Get G-code (0.2mm layer height)
+        gcode = slicer.getGcode(0.2);
         
-        // Save the G-code
-        saveGcode(gcode, "output.gcode");
-        
+        document.getElementById('status').textContent = "Slicing complete!";
+        document.getElementById('downloadBtn').disabled = false;
     } catch (error) {
         console.error("Slicing failed:", error);
-        alert("Slicing failed. See console for details.");
+        document.getElementById('status').textContent = `Error: ${error.message}`;
     }
-}
+});
 
-// Save G-code to file
-function saveGcode(content, filename) {
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
+// Download button handler
+document.getElementById('downloadBtn').addEventListener('click', () => {
+    if (!gcode) return;
     
+    const blob = new Blob([gcode], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = 'output.gcode';
     document.body.appendChild(a);
     a.click();
-    
     setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }, 100);
-}
-
-// Initialize when page loads
-window.addEventListener('DOMContentLoaded', () => {
-    initSlicer();
-    
-    document.getElementById('stlUpload').addEventListener('change', handleSTLUpload);
-    document.getElementById('sliceButton').addEventListener('click', sliceModel);
 });

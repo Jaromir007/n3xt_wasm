@@ -518,7 +518,7 @@ let sliced = false;
 
 init();
 
-let slicer;
+export let slicer;
 const loadSTLButton = document.getElementById("loadSTLButton");
 const loadJsonButton = document.getElementById("loadJsonButton");
 const sliceButton = document.getElementById("sliceButton");

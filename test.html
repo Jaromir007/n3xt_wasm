@@ -3,66 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Slicer</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .file-input {
-            display: none;
-        }
-        .file-label {
-            padding: 10px 15px;
-            background-color: #2196F3;
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-block;
-            text-align: center;
-        }
-        .status {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-            background-color: #f5f5f5;
-        }
-    </style>
+    <title>Slicer App</title>
+    <script type="module" src="test.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>3D Slicer</h1>
-        
-        <input type="file" id="stlUpload" class="file-input" accept=".stl">
-        <label for="stlUpload" class="file-label">Choose STL File</label>
-        
-        <button id="sliceButton" disabled>Slice and Download G-code</button>
-        
-        <div class="status">
-            <p>Status: <span id="statusText">Ready</span></p>
-        </div>
-    </div>
-
-    <script type="module" src="test.js"></script>
+    <h1>Slicer App</h1>
+    <div id="status">Loading...</div>
+    <input type="file" id="stlFile" accept=".stl">
+    <button id="sliceBtn" disabled>Slice</button>
+    <button id="downloadBtn" disabled>Download G-code</button>
 </body>
 </html>

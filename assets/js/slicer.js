@@ -1,5 +1,5 @@
 var Module = (() => {
-  var _scriptName = import.meta.url;
+  var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
   
   return (
 async function(moduleArg = {}) {
@@ -612,11 +612,7 @@ function createExportWrapper(name, nargs) {
 
 var wasmBinaryFile;
 function findWasmBinary() {
-  if (Module['locateFile']) {
     return locateFile('slicer.wasm');
-  }
-  // Use bundler-friendly `new URL(..., import.meta.url)` pattern; works in browsers too.
-  return new URL('slicer.wasm', import.meta.url).href;
 }
 
 function getBinarySync(file) {
