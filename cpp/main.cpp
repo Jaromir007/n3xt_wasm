@@ -7,19 +7,18 @@
 #include <unordered_set>
 #include <vector>
 #include "clipper2/clipper.h"
-#include "emscripten.h"
+#include <emscripten.h>
+#include <emscripten/bind.h>
 
 using namespace std;
 using namespace Clipper2Lib;
 
-extern "C" {
-
-struct Vec3; 
-struct V2; 
-struct Triangle; 
-struct Edge; 
+struct Vec3;
+struct P2;
+struct Triangle;
+struct Edge;
 typedef vector<Edge> Edges;
-typedef vector<P2> Polygon; 
+typedef vector<P2> Polygon;
 
 struct Vec3 {
     float x, y, z; 
@@ -101,6 +100,14 @@ struct Edge {
     }
 }; 
 
+vector<Triangle> triangles; 
+vector<vector<Polygon>> sliced;
+
+const double SCALE_FACTOR = 1000.0; 
+const double NOZZLE_DIAMETER = 0.4;  
+const double WALL_THICKNESS = NOZZLE_DIAMETER * 1.2; 
+const int WALL_COUNT = 3;  
+
 PathsD polygonsToPaths(const vector<Polygon>& polygons) {
     PathsD paths;
     for (const auto& poly : polygons) {
@@ -123,38 +130,6 @@ vector<Polygon> pathsToPolygons(const PathsD& paths) {
         polygons.push_back(poly);
     }
     return polygons;
-}
-
-vector<Triangle> triangles; 
-vector<vector<Polygon>> sliced;
-
-const double SCALE_FACTOR = 1000.0; 
-const double NOZZLE_DIAMETER = 0.4;  
-const double WALL_THICKNESS = NOZZLE_DIAMETER * 1.2; 
-const int WALL_COUNT = 3;  
-
-int parseSTL(const uint8_t* data, int length) {
-    if (length < 84) return 0; 
-
-    uint32_t numTriangles; 
-    memcpy(&numTriangles, data + 80, sizeof(uint32_t)); 
-
-    if (length < 84 + numTriangles * 50) return 0; 
-
-    triangles.clear(); 
-    const uint8_t* ptr = data + 84; 
-
-    for(size_t i = 0; i < numTriangles; i++) {
-        Vec3 v1, v2, v3, normal; 
-        memcpy(&normal, ptr, sizeof(Vec3)); 
-        memcpy(&v1, ptr + 12, sizeof(Vec3)); 
-        memcpy(&v2, ptr + 24, sizeof(Vec3)); 
-        memcpy(&v3, ptr + 36, sizeof(Vec3)); 
-
-        triangles.emplace_back(v1, v2, v3, normal); 
-        ptr += 50; 
-    }
-    return triangles.size(); 
 }
 
 void cleanUpEdges(Edges& edges) {
@@ -180,7 +155,7 @@ void cleanUpEdges(Edges& edges) {
         }
     }
 
-    edges = move(cleanedEdges);
+    edges = std::move(cleanedEdges);
 }
 
 Polygon simplifyPolygon(Polygon& polygon) {
@@ -331,8 +306,8 @@ vector<vector<Polygon>> createWalls(const vector<Polygon>& polygons) {
     return walls;
 }
 
-ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHeight) {
-    ostringstream gcode;
+string generateGCode(const vector<vector<Polygon>>& sliced, float layerHeight) {
+    stringstream gcode;
     
     const float nozzleDiameter = 0.4f;
     const float filamentDiameter = 1.75f;
@@ -459,7 +434,33 @@ ostringstream generateGCode(const vector<vector<Polygon>>& sliced, float layerHe
     gcode << "M73 P100 R0\n";
     gcode << "M73 Q100 S0\n";
     
-    return gcode;
+    return gcode.str();
+}
+
+
+
+int parseSTL(const vector<uint8_t>& data) {
+    if (data.size() < 84) return 0; 
+
+    uint32_t numTriangles; 
+    memcpy(&numTriangles, data.data() + 80, sizeof(uint32_t)); 
+
+    if (data.size() < 84 + numTriangles * 50) return 0; 
+
+    triangles.clear(); 
+    const uint8_t* ptr = data.data() + 84; 
+
+    for(size_t i = 0; i < numTriangles; i++) {
+        Vec3 v1, v2, v3, normal; 
+        memcpy(&normal, ptr, sizeof(Vec3)); 
+        memcpy(&v1, ptr + 12, sizeof(Vec3)); 
+        memcpy(&v2, ptr + 24, sizeof(Vec3)); 
+        memcpy(&v3, ptr + 36, sizeof(Vec3)); 
+
+        triangles.emplace_back(v1, v2, v3, normal); 
+        ptr += 50; 
+    }
+    return triangles.size(); 
 }
 
 int slice(float layerHeight) {
@@ -519,7 +520,7 @@ int slice(float layerHeight) {
         }
     }
 
-    return 0; 
+    return sliced.size(); 
 }
 
 string getGcode(float layerHeight) {
@@ -543,9 +544,10 @@ EMSCRIPTEN_BINDINGS(SlicerModule) {
     emscripten::register_vector<vector<Polygon>>("VectorVectorPolygon");
     emscripten::register_vector<uint8_t>("VectorUint8");
     
-    emscripten::function("parseSTL", &parseSTL);
+    emscripten::function("parseSTL", &parseSTL, emscripten::allow_raw_pointers());
     emscripten::function("slice", &slice);
     emscripten::function("getGcode", &getGcode);
-}
+    emscripten::function("_malloc", &malloc, emscripten::allow_raw_pointers());
+    emscripten::function("_free", &free, emscripten::allow_raw_pointers());
 
 }

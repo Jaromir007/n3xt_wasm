@@ -1,3 +1,4 @@
+# Remove SINGLE_FILE flag
 emcc cpp/main.cpp \
     cpp/Clipper2Lib/src/clipper.engine.cpp \
     cpp/Clipper2Lib/src/clipper.offset.cpp \
@@ -8,5 +9,8 @@ emcc cpp/main.cpp \
     -s EXPORT_ES6=1 \
     -s ENVIRONMENT=web \
     -s ALLOW_MEMORY_GROWTH=1 \
-    -s EXPORTED_FUNCTIONS='["_slice", "_parseSTL", "_malloc", "_free"]' \
-    -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "getValue", "setValue", "HEAPU8", "HEAP32", "HEAPF32"]'
+    -s EXPORTED_FUNCTIONS='["_malloc", "_free"]' \
+    -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "UTF8ToString"]' \
+    --bind \
+    -s DISABLE_EXCEPTION_CATCHING=0 \
+    -s ASSERTIONS=1
