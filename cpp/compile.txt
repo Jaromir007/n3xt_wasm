@@ -1,4 +1,4 @@
-emcc cpp/Slicer.cpp \
+emcc cpp/main.cpp \
     cpp/Clipper2Lib/src/clipper.engine.cpp \
     cpp/Clipper2Lib/src/clipper.offset.cpp \
     cpp/Clipper2Lib/src/clipper.rectclip.cpp \
