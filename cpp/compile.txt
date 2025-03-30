@@ -4,14 +4,18 @@ emcc cpp/main.cpp \
     cpp/Clipper2Lib/src/clipper.rectclip.cpp \
     -Icpp/Clipper2Lib/include \
     -o assets/js/slicer.js \
+    -O3 \
     -s MODULARIZE=1 \
     -s EXPORT_ES6=1 \
     -s USE_ES6_IMPORT_META=0 \
     -s ENVIRONMENT=web \
     -s ALLOW_MEMORY_GROWTH=1 \
+    -s EXPORT_NAME="SlicerModule" \
     -s EXPORTED_FUNCTIONS='["_malloc","_free"]' \
     -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","UTF8ToString","HEAPU8","HEAPF32"]' \
     --bind \
     -s DISABLE_EXCEPTION_CATCHING=0 \
     -s ASSERTIONS=1 \
-    -s ALLOW_UNIMPLEMENTED_SYSCALLS=1
+    -s ALLOW_UNIMPLEMENTED_SYSCALLS=1 \
+    -s MEMORY64=0 \
+    -s WASM=1
