@@ -389,17 +389,6 @@ vector<vector<Polygon>> createWalls(const vector<Polygon>& polygons) {
     return walls;
 }
 
-const double INFILL_SPACING = 4.0; 
-const double INFILL_ANGLE = 45.0;  
-
-// vector<Polygon> generateGridInfill(const vector<Polygon>& polygons) {
-//     if (polygons.empty()) {
-//         return {};
-//     }
-
-//     return pathsToPolygons(solution);
-// }
-
 void processLayers() {
     for (auto& layer : sliced) {
         vector<vector<Polygon>> walls = createWalls(layer);
@@ -409,11 +398,6 @@ void processLayers() {
         for (const auto& wall : walls) {
             layer.insert(layer.end(), wall.begin(), wall.end());
         }
-        
-        // if (!walls.empty() && !walls.back().empty()) {
-        //     vector<Polygon> infill = generateGridInfill(walls.back());
-        //     layer.insert(layer.end(), infill.begin(), infill.end());
-        // }
     }
 }
 
