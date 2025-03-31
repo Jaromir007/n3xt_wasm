@@ -3,7 +3,6 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import slicerModule from "./slicer.js";
 
-
 class Config {
     // Print bed
     static PRINT_BED_SIZE = new THREE.Vector2(250, 210);
@@ -480,9 +479,13 @@ async function loadSTL(event) {
     }
 
     stlDataPointer = slicer._malloc(stlSize);
-    slicer.HEAPU8.set(byteArray, stlDataPointer);
+    slicer.HEAPU8.set(byteArray, stlDataPointer); 
 
-    slicer._parseSTL(stlDataPointer, stlSize);
+    const triangleCount = slicer.parseSTL(stlDataPointer, stlSize);
+}
+
+function displayGcode(file) {
+    
 }
 
 renderer.domElement.addEventListener("dragover", (event) => {

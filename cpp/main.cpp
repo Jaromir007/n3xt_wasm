@@ -437,30 +437,30 @@ string generateGCode(const vector<vector<Polygon>>& sliced, float layerHeight) {
     return gcode.str();
 }
 
+EMSCRIPTEN_KEEPALIVE
+int parseSTL(const uint8_t* stlPointer, uint32_t stlSize) {
+    if (stlSize < 84) return 0; 
+    
+    uint32_t numTriangles;
+    memcpy(&numTriangles, stlPointer + 80, sizeof(uint32_t));
 
+    if (stlSize < 84 + numTriangles * 50) return 0;
 
-int parseSTL(const vector<uint8_t>& data) {
-    if (data.size() < 84) return 0; 
+    triangles.clear();
+    const uint8_t* ptr = stlPointer + 84;
 
-    uint32_t numTriangles; 
-    memcpy(&numTriangles, data.data() + 80, sizeof(uint32_t)); 
+    for (size_t i = 0; i < numTriangles; i++) {
+        Vec3 normal, v1, v2, v3;
+        memcpy(&normal, ptr, sizeof(Vec3));
+        memcpy(&v1, ptr + 12, sizeof(Vec3));
+        memcpy(&v2, ptr + 24, sizeof(Vec3));
+        memcpy(&v3, ptr + 36, sizeof(Vec3));
 
-    if (data.size() < 84 + numTriangles * 50) return 0; 
-
-    triangles.clear(); 
-    const uint8_t* ptr = data.data() + 84; 
-
-    for(size_t i = 0; i < numTriangles; i++) {
-        Vec3 v1, v2, v3, normal; 
-        memcpy(&normal, ptr, sizeof(Vec3)); 
-        memcpy(&v1, ptr + 12, sizeof(Vec3)); 
-        memcpy(&v2, ptr + 24, sizeof(Vec3)); 
-        memcpy(&v3, ptr + 36, sizeof(Vec3)); 
-
-        triangles.emplace_back(v1, v2, v3, normal); 
-        ptr += 50; 
+        triangles.emplace_back(v1, v2, v3, normal);
+        ptr += 50;
     }
-    return triangles.size(); 
+
+    return triangles.size();
 }
 
 int slice(float layerHeight) {
@@ -528,24 +528,24 @@ string getGcode(float layerHeight) {
     return generateGCode(sliced, layerHeight);
 }
 
-EMSCRIPTEN_BINDINGS(SlicerModule) {
+// EMSCRIPTEN_BINDINGS(SlicerModule) {
 
-    emscripten::value_array<Vec3>("Vec3")
-        .element(&Vec3::x)
-        .element(&Vec3::y)
-        .element(&Vec3::z);
+//     emscripten::value_array<Vec3>("Vec3")
+//         .element(&Vec3::x)
+//         .element(&Vec3::y)
+//         .element(&Vec3::z);
         
-    emscripten::value_array<P2>("P2")
-        .element(&P2::x)
-        .element(&P2::y);
+//     emscripten::value_array<P2>("P2")
+//         .element(&P2::x)
+//         .element(&P2::y);
         
-    emscripten::register_vector<Vec3>("VectorVec3");
-    emscripten::register_vector<P2>("VectorP2");
-    emscripten::register_vector<Polygon>("VectorPolygon");
-    emscripten::register_vector<vector<Polygon>>("VectorVectorPolygon");
-    emscripten::register_vector<uint8_t>("VectorUint8");
+//     emscripten::register_vector<Vec3>("VectorVec3");
+//     emscripten::register_vector<P2>("VectorP2");
+//     emscripten::register_vector<Polygon>("VectorPolygon");
+//     emscripten::register_vector<vector<Polygon>>("VectorVectorPolygon");
+//     emscripten::register_vector<uint8_t>("VectorUint8");
     
-    emscripten::function("_parseSTL", &parseSTL, emscripten::allow_raw_pointers());
-    emscripten::function("_slice", &slice);
-    emscripten::function("_getGcode", &getGcode);
-}
+//     emscripten::function("parseSTL", &parseSTL);
+//     emscripten::function("slice", &slice);
+//     emscripten::function("getGcode", &getGcode);
+// }
