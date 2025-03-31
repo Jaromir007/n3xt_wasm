@@ -10,6 +10,7 @@
 #include <emscripten.h>
 #include <emscripten/bind.h>
 
+
 using namespace std;
 using namespace Clipper2Lib;
 
@@ -528,24 +529,24 @@ string getGcode(float layerHeight) {
     return generateGCode(sliced, layerHeight);
 }
 
-// EMSCRIPTEN_BINDINGS(SlicerModule) {
+EMSCRIPTEN_BINDINGS(SlicerModule) {
 
-//     emscripten::value_array<Vec3>("Vec3")
-//         .element(&Vec3::x)
-//         .element(&Vec3::y)
-//         .element(&Vec3::z);
+    emscripten::value_array<Vec3>("Vec3")
+        .element(&Vec3::x)
+        .element(&Vec3::y)
+        .element(&Vec3::z);
         
-//     emscripten::value_array<P2>("P2")
-//         .element(&P2::x)
-//         .element(&P2::y);
+    emscripten::value_array<P2>("P2")
+        .element(&P2::x)
+        .element(&P2::y);
         
-//     emscripten::register_vector<Vec3>("VectorVec3");
-//     emscripten::register_vector<P2>("VectorP2");
-//     emscripten::register_vector<Polygon>("VectorPolygon");
-//     emscripten::register_vector<vector<Polygon>>("VectorVectorPolygon");
-//     emscripten::register_vector<uint8_t>("VectorUint8");
+    emscripten::register_vector<Vec3>("VectorVec3");
+    emscripten::register_vector<P2>("VectorP2");
+    emscripten::register_vector<Polygon>("VectorPolygon");
+    emscripten::register_vector<vector<Polygon>>("VectorVectorPolygon");
+    emscripten::register_vector<uint8_t>("VectorUint8");
     
-//     emscripten::function("parseSTL", &parseSTL);
-//     emscripten::function("slice", &slice);
-//     emscripten::function("getGcode", &getGcode);
-// }
+    emscripten::function("parseSTL", &parseSTL, emscripten::allow_raw_pointers());
+    emscripten::function("slice", &slice);
+    emscripten::function("getGcode", &getGcode);
+}

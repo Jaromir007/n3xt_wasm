@@ -299,7 +299,6 @@ function init() {
     document.getElementById("clearButton").addEventListener("click", clearAll);
 
     renderer.domElement.addEventListener("click", selectObject, false);
-    window.addEventListener("resize", onWindowResize);
     window.addEventListener("keydown", cameraPosition);
 
     animate();
@@ -354,12 +353,6 @@ function zoomToScene() {
         controls.target.copy(center);
     }
     controls.update();
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function animate() {
@@ -436,7 +429,7 @@ function clearAll() {
     imported = [];
     layers = [];
 
-    downloadGcodeButton.style.display = "none";
+    exportGcodeButton.style.display = "none";
     document.getElementById("loadSTLButton").value = "";
 }
 
@@ -451,10 +444,11 @@ let sliced = false;
 
 init();
 
-export let slicer;
 const loadSTLButton = document.getElementById("loadSTLButton");
 const sliceButton = document.getElementById("sliceButton");
-const downloadGcodeButton = document.getElementById("downloadGcodeButton");
+const exportGcodeButton = document.getElementById("exportGcodeButton");
+
+export let slicer;
 
 slicerModule().then((module) => {
     slicer = module;
@@ -465,10 +459,13 @@ slicerModule().then((module) => {
 
 let stlDataPointer = null;
 let stlSize = 0;
+let stlName = null;
 
 async function loadSTL(event) {
     const file = event.dataTransfer ? event.dataTransfer.files[0] : event.target.files[0];
     if (!file || !slicer) return;
+    stlName = file.name.replace(/\.[^/.]+$/, "");
+    console.log("Loading STL:", stlName);
 
     const arrayBuffer = await file.arrayBuffer();
     const byteArray = new Uint8Array(arrayBuffer);
@@ -481,11 +478,8 @@ async function loadSTL(event) {
     stlDataPointer = slicer._malloc(stlSize);
     slicer.HEAPU8.set(byteArray, stlDataPointer); 
 
-    const triangleCount = slicer.parseSTL(stlDataPointer, stlSize);
-}
-
-function displayGcode(file) {
-    
+    const triangleCount = slicer.ccall("parseSTL", "number", ["number", "number"], [stlDataPointer, stlSize]);
+    console.log("Triangle count:", triangleCount);
 }
 
 renderer.domElement.addEventListener("dragover", (event) => {
@@ -513,9 +507,19 @@ sliceButton.addEventListener("click", () => {
         return;
     }
 
+    let gcodeStr = slicer.getGcode(0.2); 
+
+    exportGcodeButton
+    const blob = new Blob([gcodeStr], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    exportGcodeButton.href = url;
+    exportGcodeButton.download = `${stlName}.gcode`;
+
     clearScene(); 
     sliced = true;
-    downloadGcodeButton.style.display = "block";
+
+    exportGcodeButton.style.display = "block";
 });
 
 window.addEventListener("keydown", (event) => {

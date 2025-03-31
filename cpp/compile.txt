@@ -17,5 +17,5 @@ emcc cpp/main.cpp \
     -s DISABLE_EXCEPTION_CATCHING=0 \
     -s ASSERTIONS=1 \
     -s ALLOW_UNIMPLEMENTED_SYSCALLS=1 \
-    -s MEMORY64=0 \
-    -s WASM=1
+    -s WASM=1 \
+    -s SINGLE_FILE=1
