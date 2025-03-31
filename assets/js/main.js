@@ -428,9 +428,21 @@ function clearAll() {
     sliced = false;
     imported = [];
     layers = [];
+    stlDataPointer = null;
+    stlSize = 0;
+    stlName = null;
+    gcodeStr = null;
+
+    scene.children.filter(child => child.userData.isGCodePath).forEach(child => {
+        scene.remove(child);
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) child.material.dispose();
+    });
 
     exportGcodeButton.style.display = "none";
-    document.getElementById("loadSTLButton").value = "";
+    loadSTLButton.value = "";
+    exportGcodeButton.href = "";
+    exportGcodeButton.download = "";
 }
 
 
@@ -460,6 +472,7 @@ slicerModule().then((module) => {
 let stlDataPointer = null;
 let stlSize = 0;
 let stlName = null;
+let gcodeStr = null;
 
 async function loadSTL(event) {
     const file = event.dataTransfer ? event.dataTransfer.files[0] : event.target.files[0];
@@ -507,7 +520,7 @@ sliceButton.addEventListener("click", () => {
         return;
     }
 
-    let gcodeStr = slicer.getGcode(0.2); 
+    gcodeStr = slicer.getGcode(0.2); 
 
     exportGcodeButton
     const blob = new Blob([gcodeStr], { type: 'text/plain' });
@@ -520,6 +533,7 @@ sliceButton.addEventListener("click", () => {
     sliced = true;
 
     exportGcodeButton.style.display = "block";
+    renderGCode();
 });
 
 window.addEventListener("keydown", (event) => {
@@ -531,3 +545,108 @@ window.addEventListener("keydown", (event) => {
         })
     }
 });
+
+function renderGCode() {
+    if (!gcodeStr) return;
+
+    const layers = parseGCodeLayers(gcodeStr);
+    
+    const gcodeGroup = new THREE.Group();
+    gcodeGroup.userData.isGCodePath = true;
+    scene.add(gcodeGroup);
+
+    layers.forEach((layer) => {
+        const layerGroup = new THREE.Group();
+        layerGroup.userData.isGCodePath = true;
+        layerGroup.position.y = layer.height * 0.2;
+        
+        layer.polygons.forEach(polygon => {
+            const path = createPathFromPolygon(polygon);
+            layerGroup.add(path);
+        });
+
+        gcodeGroup.add(layerGroup);
+    });
+}
+
+function parseGCodeLayers(gcode) {
+    const lines = gcode.split('\n');
+    const layers = [];
+    let currentLayer = null;
+    let currentPolygon = null;
+    let lastPosition = { x: 0, y: 0, z: 0 };
+    let extruding = false;
+
+    lines.forEach(line => {
+        if (line.includes(';LAYER:')) {
+            const layerHeightMatch = line.match(/;LAYER:(\d+)/);
+            if (layerHeightMatch) {
+                const layerHeight = parseFloat(layerHeightMatch[1]);
+                if (currentLayer) layers.push(currentLayer);
+                currentLayer = {
+                    height: layerHeight,
+                    polygons: []
+                };
+                currentPolygon = null;
+            }
+            return;
+        }
+
+        if (line.startsWith(';') || !(line.startsWith('G0') || line.startsWith('G1'))) {
+            return;
+        }
+
+        const parts = line.split(' ');
+        const command = {};
+        parts.forEach(part => {
+            if (part.startsWith('X')) command.x = parseFloat(part.substring(1));
+            if (part.startsWith('Y')) command.y = parseFloat(part.substring(1));
+            if (part.startsWith('Z')) command.z = parseFloat(part.substring(1));
+            if (part.startsWith('E')) command.e = parseFloat(part.substring(1));
+        });
+
+        const newPosition = {
+            x: command.x !== undefined ? command.x : lastPosition.x,
+            y: command.y !== undefined ? command.y : lastPosition.y,
+            z: command.z !== undefined ? command.z : lastPosition.z
+        };
+
+        const newExtruding = command.e !== undefined && command.e > 0;
+
+        if (newExtruding && !extruding) {
+            currentPolygon = {
+                points: [new THREE.Vector3(lastPosition.x, 0, lastPosition.y)]
+            };
+        } else if (!newExtruding && extruding && currentPolygon) {
+            if (currentPolygon.points.length > 2) {
+                currentPolygon.points.push(currentPolygon.points[0].clone());
+                currentLayer.polygons.push(currentPolygon);
+            }
+            currentPolygon = null;
+        }
+
+        if (newExtruding && currentPolygon) {
+            currentPolygon.points.push(new THREE.Vector3(newPosition.x, 0, newPosition.y));
+        }
+
+        extruding = newExtruding;
+        lastPosition = newPosition;
+    });
+
+    if (currentLayer) layers.push(currentLayer);
+
+    return layers;
+}
+
+function createPathFromPolygon(polygon) {
+    const material = new THREE.LineBasicMaterial({ 
+        color: 0xff0000,
+        linewidth: 1
+    });
+
+    const geometry = new THREE.BufferGeometry().setFromPoints(polygon.points);
+    const line = new THREE.Line(geometry, material);
+    line.userData.isGCodePath = true;
+    
+    return line;
+}
