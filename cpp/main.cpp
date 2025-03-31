@@ -529,6 +529,7 @@ string getGcode(float layerHeight) {
 }
 
 EMSCRIPTEN_BINDINGS(SlicerModule) {
+
     emscripten::value_array<Vec3>("Vec3")
         .element(&Vec3::x)
         .element(&Vec3::y)
@@ -544,10 +545,7 @@ EMSCRIPTEN_BINDINGS(SlicerModule) {
     emscripten::register_vector<vector<Polygon>>("VectorVectorPolygon");
     emscripten::register_vector<uint8_t>("VectorUint8");
     
-    emscripten::function("parseSTL", &parseSTL, emscripten::allow_raw_pointers());
-    emscripten::function("slice", &slice);
-    emscripten::function("getGcode", &getGcode);
-    emscripten::function("_malloc", &malloc, emscripten::allow_raw_pointers());
-    emscripten::function("_free", &free, emscripten::allow_raw_pointers());
-
+    emscripten::function("_parseSTL", &parseSTL, emscripten::allow_raw_pointers());
+    emscripten::function("_slice", &slice);
+    emscripten::function("_getGcode", &getGcode);
 }

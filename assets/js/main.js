@@ -400,72 +400,6 @@ function displaySTL(event) {
     reader.readAsArrayBuffer(file);
 }
 
-function centerLayers(layers) {
-    let minX = Infinity, maxX = -Infinity;
-    let minY = Infinity, maxY = -Infinity;
-
-    layers.forEach(layer => {
-        layer.forEach(p => {
-            if (p.x < minX) minX = p.x;
-            if (p.x > maxX) maxX = p.x;
-            if (p.y < minY) minY = p.y;
-            if (p.y > maxY) maxY = p.y;
-        });
-    });
-
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-
-    return layers.map(layer =>
-        layer.map(p => ({ x: p.x - centerX, y: p.y - centerY }))
-    );
-}
-
-
-function drawLayers(layers) {
-    layers = centerLayers(layers)
-    const vertices = [];
-
-    layers.forEach((layer, i) => {
-        const zHeight = i * 0.2;
-        layer.forEach(p => {
-            vertices.push(p.x, zHeight, -p.y);
-        });
-    });
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-
-    const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
-    const lines = new THREE.LineSegments(geometry, material);
-
-    imported.push(lines);
-    scene.add(lines);
-}
-
-function drawPoints(layers) {
-    layers = centerLayers(layers)
-    layers.forEach((layer, i) => {
-        const zHeight = i * 0.2;
-        const points = new THREE.BufferGeometry();
-        const vertices = [];
-        const color = 0xff0000;
-
-        layer.forEach(p => {
-            vertices.push(p.x, zHeight, -p.y);
-        });
-
-        points.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-
-        const material = new THREE.PointsMaterial({ color, size: 2, sizeAttenuation: false });
-        const pointsMesh = new THREE.Points(points, material);
-
-        scene.add(pointsMesh);
-        imported.push(pointsMesh);
-    });
-}
-
-
 function selectObject(event) {
     event.preventDefault();
     if (sliced) return;
@@ -520,10 +454,7 @@ init();
 
 export let slicer;
 const loadSTLButton = document.getElementById("loadSTLButton");
-const loadJsonButton = document.getElementById("loadJsonButton");
 const sliceButton = document.getElementById("sliceButton");
-const drawLayersButton = document.getElementById("drawLayersButton");
-const drawPointsButton = document.getElementById("drawPointsButton");
 const downloadGcodeButton = document.getElementById("downloadGcodeButton");
 
 slicerModule().then((module) => {
@@ -579,49 +510,9 @@ sliceButton.addEventListener("click", () => {
         return;
     }
 
-    const layerHeight = 0.2;
-    const totalPointsPointer = slicer._malloc(4);
-
-    const pointsPointer = slicer._slice(layerHeight, totalPointsPointer);
-    const totalPoints = slicer.HEAP32[totalPointsPointer / 4];
-
-    let currentLayer = [];
-
-    for (let i = 0; i < totalPoints; i++) {
-        const index = (pointsPointer / 4) + i * 2;
-        const x = slicer.HEAPF32[index];
-        const y = slicer.HEAPF32[index + 1];
-
-        if (x === -9999 && y === -9999) {
-            layers.push(currentLayer);
-            currentLayer = [];
-        } else {
-            currentLayer.push({ x, y });
-        }
-    }
-
-    clearScene()
-    drawLayers(layers)
+    clearScene(); 
     sliced = true;
     downloadGcodeButton.style.display = "block";
-
-    slicer._free(totalPointsPointer);
-});
-
-
-
-drawLayersButton.addEventListener("click", () => {
-    if (layers.length > 0) {
-        clearScene()
-        drawLayers(layers)
-    }
-});
-
-drawPointsButton.addEventListener("click", () => {
-    if (layers.length > 0) {
-        clearScene()
-        drawPoints(layers)
-    }
 });
 
 window.addEventListener("keydown", (event) => {
