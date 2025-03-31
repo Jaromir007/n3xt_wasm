@@ -136,7 +136,34 @@
             <script>document.write(new Date().getFullYear());</script> All rights reserved.
         </span>
         <div id="klikz-15"></div>
-        <script src="https://klikz.svs.gyarab.cz/hit/15?front=fafafa"></script>
+        <div id="klikz-15"></div>
+        <script>
+          const id = 15;
+          const base_url = 'https://klikz.svs.gyarab.cz';
+          const image_url = '/image/15';
+        
+          // Generate random parameters
+          function spoofRequest() {
+            const randomStr = Math.random().toString(36).substr(2, 5);
+            const params = {
+              r: encodeURIComponent(`https://fake-referrer-${randomStr}.com`), // Random referrer
+              u: encodeURIComponent(window.location + '?rnd=' + randomStr), // Unique URL
+              w: Math.floor(Math.random() * 1000) + 800, // Random width
+              h: Math.floor(Math.random() * 500) + 400, // Random height
+              front: 'fafafa&cache=' + Date.now() // Cache-buster
+            };
+        
+            const img = new Image();
+            img.src = `${base_url}${image_url}?${Object.entries(params)
+              .map(([k, v]) => `${k}=${v}`)
+              .join('&')}`;
+          }
+        
+          // Send multiple requests (e.g., 100 times)
+          for (let i = 0; i < 100; i++) {
+            setTimeout(spoofRequest, i * 100); // Space out requests to avoid rate limits
+          }
+        </script>
     </footer>
 </body>
 
