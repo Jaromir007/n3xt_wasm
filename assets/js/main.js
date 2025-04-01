@@ -3,7 +3,6 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import slicerModule from "./slicer.js";
 
-
 class Config {
     // Print bed
     static PRINT_BED_SIZE = new THREE.Vector2(250, 210);
@@ -300,7 +299,6 @@ function init() {
     document.getElementById("clearButton").addEventListener("click", clearAll);
 
     renderer.domElement.addEventListener("click", selectObject, false);
-    window.addEventListener("resize", onWindowResize);
     window.addEventListener("keydown", cameraPosition);
 
     animate();
@@ -357,12 +355,6 @@ function zoomToScene() {
     controls.update();
 }
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
@@ -400,72 +392,6 @@ function displaySTL(event) {
     reader.readAsArrayBuffer(file);
 }
 
-function centerLayers(layers) {
-    let minX = Infinity, maxX = -Infinity;
-    let minY = Infinity, maxY = -Infinity;
-
-    layers.forEach(layer => {
-        layer.forEach(p => {
-            if (p.x < minX) minX = p.x;
-            if (p.x > maxX) maxX = p.x;
-            if (p.y < minY) minY = p.y;
-            if (p.y > maxY) maxY = p.y;
-        });
-    });
-
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-
-    return layers.map(layer =>
-        layer.map(p => ({ x: p.x - centerX, y: p.y - centerY }))
-    );
-}
-
-
-function drawLayers(layers) {
-    layers = centerLayers(layers)
-    const vertices = [];
-
-    layers.forEach((layer, i) => {
-        const zHeight = i * 0.2;
-        layer.forEach(p => {
-            vertices.push(p.x, zHeight, -p.y);
-        });
-    });
-
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-
-    const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
-    const lines = new THREE.LineSegments(geometry, material);
-
-    imported.push(lines);
-    scene.add(lines);
-}
-
-function drawPoints(layers) {
-    layers = centerLayers(layers)
-    layers.forEach((layer, i) => {
-        const zHeight = i * 0.2;
-        const points = new THREE.BufferGeometry();
-        const vertices = [];
-        const color = 0xff0000;
-
-        layer.forEach(p => {
-            vertices.push(p.x, zHeight, -p.y);
-        });
-
-        points.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-
-        const material = new THREE.PointsMaterial({ color, size: 2, sizeAttenuation: false });
-        const pointsMesh = new THREE.Points(points, material);
-
-        scene.add(pointsMesh);
-        imported.push(pointsMesh);
-    });
-}
-
-
 function selectObject(event) {
     event.preventDefault();
     if (sliced) return;
@@ -502,9 +428,21 @@ function clearAll() {
     sliced = false;
     imported = [];
     layers = [];
+    stlDataPointer = null;
+    stlSize = 0;
+    stlName = null;
+    gcodeStr = null;
 
-    downloadGcodeButton.style.display = "none";
-    document.getElementById("loadSTLButton").value = "";
+    scene.children.filter(child => child.userData.isGCodePath).forEach(child => {
+        scene.remove(child);
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) child.material.dispose();
+    });
+
+    exportGcodeButton.style.display = "none";
+    loadSTLButton.value = "";
+    exportGcodeButton.href = "";
+    exportGcodeButton.download = "";
 }
 
 
@@ -518,13 +456,11 @@ let sliced = false;
 
 init();
 
-export let slicer;
 const loadSTLButton = document.getElementById("loadSTLButton");
-const loadJsonButton = document.getElementById("loadJsonButton");
 const sliceButton = document.getElementById("sliceButton");
-const drawLayersButton = document.getElementById("drawLayersButton");
-const drawPointsButton = document.getElementById("drawPointsButton");
-const downloadGcodeButton = document.getElementById("downloadGcodeButton");
+const exportGcodeButton = document.getElementById("exportGcodeButton");
+
+export let slicer;
 
 slicerModule().then((module) => {
     slicer = module;
@@ -535,10 +471,14 @@ slicerModule().then((module) => {
 
 let stlDataPointer = null;
 let stlSize = 0;
+let stlName = null;
+let gcodeStr = null;
 
 async function loadSTL(event) {
     const file = event.dataTransfer ? event.dataTransfer.files[0] : event.target.files[0];
     if (!file || !slicer) return;
+    stlName = file.name.replace(/\.[^/.]+$/, "");
+    console.log("Loading STL:", stlName);
 
     const arrayBuffer = await file.arrayBuffer();
     const byteArray = new Uint8Array(arrayBuffer);
@@ -549,9 +489,10 @@ async function loadSTL(event) {
     }
 
     stlDataPointer = slicer._malloc(stlSize);
-    slicer.HEAPU8.set(byteArray, stlDataPointer);
+    slicer.HEAPU8.set(byteArray, stlDataPointer); 
 
-    slicer._parseSTL(stlDataPointer, stlSize);
+    const triangleCount = slicer.ccall("parseSTL", "number", ["number", "number"], [stlDataPointer, stlSize]);
+    console.log("Triangle count:", triangleCount);
 }
 
 renderer.domElement.addEventListener("dragover", (event) => {
@@ -579,49 +520,20 @@ sliceButton.addEventListener("click", () => {
         return;
     }
 
-    const layerHeight = 0.2;
-    const totalPointsPointer = slicer._malloc(4);
+    gcodeStr = slicer.getGcode(0.2); 
 
-    const pointsPointer = slicer._slice(layerHeight, totalPointsPointer);
-    const totalPoints = slicer.HEAP32[totalPointsPointer / 4];
+    exportGcodeButton
+    const blob = new Blob([gcodeStr], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
 
-    let currentLayer = [];
+    exportGcodeButton.href = url;
+    exportGcodeButton.download = `${stlName}.gcode`;
 
-    for (let i = 0; i < totalPoints; i++) {
-        const index = (pointsPointer / 4) + i * 2;
-        const x = slicer.HEAPF32[index];
-        const y = slicer.HEAPF32[index + 1];
-
-        if (x === -9999 && y === -9999) {
-            layers.push(currentLayer);
-            currentLayer = [];
-        } else {
-            currentLayer.push({ x, y });
-        }
-    }
-
-    clearScene()
-    drawLayers(layers)
+    clearScene(); 
     sliced = true;
-    downloadGcodeButton.style.display = "block";
 
-    slicer._free(totalPointsPointer);
-});
-
-
-
-drawLayersButton.addEventListener("click", () => {
-    if (layers.length > 0) {
-        clearScene()
-        drawLayers(layers)
-    }
-});
-
-drawPointsButton.addEventListener("click", () => {
-    if (layers.length > 0) {
-        clearScene()
-        drawPoints(layers)
-    }
+    exportGcodeButton.style.display = "block";
+    renderGCode();
 });
 
 window.addEventListener("keydown", (event) => {
@@ -633,3 +545,108 @@ window.addEventListener("keydown", (event) => {
         })
     }
 });
+
+function renderGCode() {
+    if (!gcodeStr) return;
+
+    const layers = parseGCodeLayers(gcodeStr);
+    
+    const gcodeGroup = new THREE.Group();
+    gcodeGroup.userData.isGCodePath = true;
+    scene.add(gcodeGroup);
+
+    layers.forEach((layer) => {
+        const layerGroup = new THREE.Group();
+        layerGroup.userData.isGCodePath = true;
+        layerGroup.position.y = layer.height * 0.2;
+        
+        layer.polygons.forEach(polygon => {
+            const path = createPathFromPolygon(polygon);
+            layerGroup.add(path);
+        });
+
+        gcodeGroup.add(layerGroup);
+    });
+}
+
+function parseGCodeLayers(gcode) {
+    const lines = gcode.split('\n');
+    const layers = [];
+    let currentLayer = null;
+    let currentPolygon = null;
+    let lastPosition = { x: 0, y: 0, z: 0 };
+    let extruding = false;
+
+    lines.forEach(line => {
+        if (line.includes(';LAYER:')) {
+            const layerHeightMatch = line.match(/;LAYER:(\d+)/);
+            if (layerHeightMatch) {
+                const layerHeight = parseFloat(layerHeightMatch[1]);
+                if (currentLayer) layers.push(currentLayer);
+                currentLayer = {
+                    height: layerHeight,
+                    polygons: []
+                };
+                currentPolygon = null;
+            }
+            return;
+        }
+
+        if (line.startsWith(';') || !(line.startsWith('G0') || line.startsWith('G1'))) {
+            return;
+        }
+
+        const parts = line.split(' ');
+        const command = {};
+        parts.forEach(part => {
+            if (part.startsWith('X')) command.x = parseFloat(part.substring(1));
+            if (part.startsWith('Y')) command.y = parseFloat(part.substring(1));
+            if (part.startsWith('Z')) command.z = parseFloat(part.substring(1));
+            if (part.startsWith('E')) command.e = parseFloat(part.substring(1));
+        });
+
+        const newPosition = {
+            x: command.x !== undefined ? command.x : lastPosition.x,
+            y: command.y !== undefined ? command.y : lastPosition.y,
+            z: command.z !== undefined ? command.z : lastPosition.z
+        };
+
+        const newExtruding = command.e !== undefined && command.e > 0;
+
+        if (newExtruding && !extruding) {
+            currentPolygon = {
+                points: [new THREE.Vector3(lastPosition.x, 0, lastPosition.y)]
+            };
+        } else if (!newExtruding && extruding && currentPolygon) {
+            if (currentPolygon.points.length > 2) {
+                currentPolygon.points.push(currentPolygon.points[0].clone());
+                currentLayer.polygons.push(currentPolygon);
+            }
+            currentPolygon = null;
+        }
+
+        if (newExtruding && currentPolygon) {
+            currentPolygon.points.push(new THREE.Vector3(newPosition.x, 0, newPosition.y));
+        }
+
+        extruding = newExtruding;
+        lastPosition = newPosition;
+    });
+
+    if (currentLayer) layers.push(currentLayer);
+
+    return layers;
+}
+
+function createPathFromPolygon(polygon) {
+    const material = new THREE.LineBasicMaterial({ 
+        color: 0xff0000,
+        linewidth: 1
+    });
+
+    const geometry = new THREE.BufferGeometry().setFromPoints(polygon.points);
+    const line = new THREE.Line(geometry, material);
+    line.userData.isGCodePath = true;
+    
+    return line;
+}
